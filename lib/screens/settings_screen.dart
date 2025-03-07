@@ -345,7 +345,7 @@ class _SettingsScreenState extends State<SettingsScreen>
          Text(
            "Controls randomness: 0.0 is deterministic, 2.0 is max randomness.",
            style: TextStyle(
-             color: theme.colorScheme.onSurface.withOpacity(0.6),
+             color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
              fontSize: 12,
            ),
          ),
@@ -417,7 +417,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           Text(
             "Maximum number of tokens in the AI response.",
             style: TextStyle(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               fontSize: 12,
             ),
           ),
@@ -448,7 +448,7 @@ class _SettingsScreenState extends State<SettingsScreen>
           Text(
             "Your API key is stored only on this device",
             style: TextStyle(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               fontSize: 12,
             ),
           ),
@@ -490,7 +490,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         Text(
           "Customize the AI's personality and behavior.",
           style: TextStyle(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             fontSize: 12,
           ),
         ),
@@ -514,14 +514,14 @@ class _SettingsScreenState extends State<SettingsScreen>
             Text(
               "Yet another chat app.",
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               "© 2025 Sorbet Studio LLP",
               style: TextStyle(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 fontSize: 12,
               ),
             ),
@@ -735,7 +735,7 @@ class SkeuomorphicTextField extends StatelessWidget {
         onChanged: onChanged,
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: TextStyle(color: textColor != null ? textColor.withOpacity(0.6) : Colors.grey.withOpacity(0.6)), // Lighter hint text with null check
+          hintStyle: TextStyle(color: textColor != null ? textColor.withValues(alpha: 0.6) : Colors.grey.withValues(alpha: 0.6)), // Lighter hint text with null check
           filled: true,
           fillColor: fillColor,
           border: OutlineInputBorder(

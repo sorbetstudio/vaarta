@@ -257,11 +257,11 @@ class _ChatScreenState extends State<ChatScreen> {
       preferredSize: const Size.fromHeight(kToolbarHeight),
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
           child: AppBar(
             backgroundColor: isDark
-                ? Colors.black.withOpacity(0.7)
-                : Colors.white.withOpacity(0.7),
+                ? Colors.black.withValues(alpha: 0.7)
+                : Colors.white.withValues(alpha: 0.7),
             elevation: 0,
             title: const Text('Chat'),
             leading: IconButton(
@@ -401,7 +401,7 @@ Widget _buildUserMessage(ChatMessage message, ThemeData theme) {
             style: const TextStyle(color: Colors.white, fontSize: 16),
             decoration: InputDecoration.collapsed(
               hintText: "Enter message",
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
             ),
             onChanged: (value) {
               // Update the message in the _messages list
@@ -454,7 +454,7 @@ Widget _buildUserMessage(ChatMessage message, ThemeData theme) {
         decoration: BoxDecoration(
           color: isDark
               ? theme.colorScheme.surface
-              : theme.colorScheme.surface.withOpacity(0.7),
+              : theme.colorScheme.surface.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(16),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -463,7 +463,7 @@ Widget _buildUserMessage(ChatMessage message, ThemeData theme) {
           style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontSize: 16),
           decoration: InputDecoration.collapsed(
             hintText: "Enter message", // This shouldn't really show for AI messages
-            hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+            hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
           ),
           onChanged: (value) {
             // Update in _messages
@@ -618,9 +618,9 @@ class _ThinkingAnimationState extends State<ThinkingAnimation>
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: widget.color.withOpacity(0.3), width: 1),
+        border: Border.all(color: widget.color.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min, // Wrap content tightly
@@ -672,7 +672,7 @@ class _ThinkingAnimationState extends State<ThinkingAnimation>
                   ),
                   decoration: InputDecoration.collapsed(
                     hintText: 'Thinking...',
-                    hintStyle: TextStyle(color: widget.color.withOpacity(0.6))
+                    hintStyle: TextStyle(color: widget.color.withValues(alpha: 0.6))
                   ),
                   onChanged: (value) {
                     // Could save to SharedPreferences if desired.
@@ -748,10 +748,10 @@ class _ThinkingBubbleState extends State<ThinkingBubble>
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withOpacity(0.15),
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: theme.colorScheme.primary.withOpacity(0.3), width: 1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -808,7 +808,7 @@ class _ThinkingBubbleState extends State<ThinkingBubble>
                   data: widget.content,
                   styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
                     p: TextStyle(
-                        color: theme.colorScheme.onSurface.withOpacity(0.9),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
                         fontSize: 14),
                     code: TextStyle(
                       backgroundColor: theme.brightness == Brightness.dark
@@ -869,7 +869,7 @@ class StreamingMessage extends StatelessWidget {
             decoration: BoxDecoration(
               color: isDark
                   ? theme.colorScheme.surface
-                  : theme.colorScheme.surface.withOpacity(0.7),
+                  : theme.colorScheme.surface.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(16),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

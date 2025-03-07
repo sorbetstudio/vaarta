@@ -199,10 +199,10 @@ class _ThinkingBoxMarkdownWidgetState extends State<ThinkingBoxMarkdownWidget>
             },
             child: Container(
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.5),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.5),
                   width: 1,
                 ),
               ),
@@ -318,9 +318,9 @@ class _ThinkingAnimationState extends State<ThinkingAnimation>
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: widget.color.withOpacity(0.3), width: 1),
+        border: Border.all(color: widget.color.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -419,10 +419,10 @@ class _ThinkingBubbleState extends State<ThinkingBubble>
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: widget.theme.colorScheme.primaryContainer.withOpacity(0.15),
+        color: widget.theme.colorScheme.primaryContainer.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: widget.theme.colorScheme.primary.withOpacity(0.3),
+          color: widget.theme.colorScheme.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -484,7 +484,7 @@ class _ThinkingBubbleState extends State<ThinkingBubble>
                   data: widget.content,
                   styleSheet: MarkdownStyleSheet(
                     p: TextStyle(
-                      color: widget.theme.colorScheme.onSurface.withOpacity(
+                      color: widget.theme.colorScheme.onSurface.withValues(alpha: 
                         0.9,
                       ),
                       fontSize: 14,
@@ -557,7 +557,7 @@ class StreamingMessage extends StatelessWidget {
             color:
                 isDark
                     ? theme.colorScheme.surface
-                    : theme.colorScheme.surface.withOpacity(0.7),
+                    : theme.colorScheme.surface.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(16),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -814,8 +814,8 @@ class _ChatScreenState extends State<ChatScreen> {
             child: AppBar(
               backgroundColor:
                   isDark
-                      ? Colors.black.withOpacity(0.7)
-                      : Colors.white.withOpacity(0.7),
+                      ? Colors.black.withValues(alpha: 0.7)
+                      : Colors.white.withValues(alpha: 0.7),
               elevation: 0,
               title: const Text('Chat'),
               leading: IconButton(
