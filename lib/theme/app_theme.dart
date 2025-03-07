@@ -6,7 +6,7 @@ ThemeData appTheme = ThemeData(
     primary: Colors.white, // Primary color - white for buttons and backgrounds
     secondary: Colors.black, // Secondary color - black for text and secondary buttons
     tertiary: Colors.orange, // Tertiary color - orange for accent and key actions
-    background: Colors.grey.shade50, // Background color - light grey
+    surface: Colors.grey.shade50, // Background color - light grey
   ),
   appBarTheme: const AppBarTheme(
     backgroundColor: Colors.white,
