@@ -1,5 +1,5 @@
 name: vaarta
-description: "A Beautiful FOSS ai Interface, focused on utility and deep integration."
+description: "A Beautiful FOSS ai Interface, focused on Utility and Deep Integration with the OS."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 version: 1.0.0+1
@@ -17,9 +17,9 @@ dependencies:
   google_generative_ai: ^0.4.6
   wakelock_plus: ^1.1.1
   flutter_riverpod: ^2.4.1
-  flutter_markdown: ^0.6.18 # Add flutter_markdown dependency
-  path_provider: ^2.1.2 # Add path_provider dependency
-  logging: ^1.2.0 # Add logging dependency
+  flutter_markdown: ^0.6.18
+  path_provider: ^2.1.2
+  logging: ^1.2.0
   provider: ^6.0.5
   cupertino_icons: ^1.0.8
 
