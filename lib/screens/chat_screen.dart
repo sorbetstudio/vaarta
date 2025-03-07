@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_helper.dart';
 import 'dart:ui';
@@ -40,6 +41,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Add TextEditingController for system prompt
   final TextEditingController _systemPromptController = TextEditingController();
+
+    // Add boolean for message editability
+  bool _isEditingMessages = false;
 
   final String defaultSystemPrompt =
       '''You are Vaarta AI, a helpful assistant. Your responses should be concise, avoiding unnecessary details. Your personality is lovable, warm, and inviting. ''';
@@ -270,6 +274,15 @@ class _ChatScreenState extends State<ChatScreen> {
                 icon: const Icon(Icons.edit_note),
                 onPressed: _editSystemPrompt,
               ),
+              // Toggle message editability
+              IconButton(
+                icon: Icon(_isEditingMessages ? Icons.visibility : Icons.edit),
+                onPressed: () {
+                  setState(() {
+                    _isEditingMessages = !_isEditingMessages;
+                  });
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.settings),
                 onPressed: _openSettings,
@@ -370,45 +383,73 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildUserMessage(ChatMessage message, ThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: TextFormField(
-        initialValue: message.content,
-        style: const TextStyle(color: Colors.white, fontSize: 16),
-        decoration: InputDecoration.collapsed(
-          hintText: "Enter message",
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
-        ),
-        onChanged: (value) {
-          // Update the message in the _messages list
-          final index = _messages.indexWhere((m) => m.timestamp == message.timestamp);
-          if (index != -1) {
-            _messages[index] = ChatMessage(
-              chatId: message.chatId,
-              content: value,
-              isUser: message.isUser,
-              timestamp: message.timestamp, // Keep original timestamp
-            );
+Widget _buildUserMessage(ChatMessage message, ThemeData theme) {
+  final isDark = theme.brightness == Brightness.dark;
+  // Use a controller to manage the text field's content and remove initialValue
+  final TextEditingController messageController =
+      TextEditingController(text: message.content);
 
-            // Update the message in the database
-            dbHelper.updateMessage(
-              message.copyWith(content: value),
-            ); // Use copyWith
-          }
-        },
-        maxLines: null,
-      ),
-    );
-  }
+  return Container(
+    decoration: BoxDecoration(
+      color: theme.colorScheme.primary,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    child: _isEditingMessages
+        ? TextFormField(
+            controller: messageController, // Use controller
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+            decoration: InputDecoration.collapsed(
+              hintText: "Enter message",
+              hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+            ),
+            onChanged: (value) {
+              // Update the message in the _messages list
+              final index =
+                  _messages.indexWhere((m) => m.timestamp == message.timestamp);
+              if (index != -1) {
+                _messages[index] = ChatMessage(
+                  chatId: message.chatId,
+                  content: value,
+                  isUser: message.isUser,
+                  timestamp: message.timestamp, // Keep original timestamp
+                );
+
+                // Update the message in the database
+                dbHelper.updateMessage(
+                  message.copyWith(content: value),
+                ); // Use copyWith
+              }
+            },
+            maxLines: null,
+          )
+        : MarkdownBody( // Show MarkdownBody when not editing
+            data: message.content,
+            styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+              p: const TextStyle(color: Colors.white, fontSize: 16),
+              code: TextStyle(
+                backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                color: theme.colorScheme.onSurface,
+                fontFamily: 'monospace',
+              ),
+              codeblockDecoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              blockquoteDecoration: BoxDecoration(
+                border: Border(left: BorderSide(color: theme.dividerColor, width: 4)),
+              ),
+            ),
+          ),
+  );
+}
 
   Widget _buildAssistantMessage(ChatMessage message, ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
+    // Use a controller to manage the text field's content and remove initialValue
+    final TextEditingController messageController =
+        TextEditingController(text: message.content);
+
       return Container(
         decoration: BoxDecoration(
           color: isDark
@@ -417,8 +458,8 @@ class _ChatScreenState extends State<ChatScreen> {
           borderRadius: BorderRadius.circular(16),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: TextFormField(
-          initialValue: message.content,
+        child: _isEditingMessages ? TextFormField(
+          controller: messageController, // Use controller
           style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontSize: 16),
           decoration: InputDecoration.collapsed(
             hintText: "Enter message", // This shouldn't really show for AI messages
@@ -439,7 +480,27 @@ class _ChatScreenState extends State<ChatScreen> {
               }
           },
           maxLines: null,
-        ),
+        )
+        : MarkdownBody( // Show MarkdownBody when not editing
+            data: message.content,
+            styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+              p: TextStyle(color: theme.textTheme.bodyLarge?.color, fontSize: 16),
+              code: TextStyle(
+                backgroundColor:
+                    isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                color: theme.colorScheme.onSurface,
+                fontFamily: 'monospace',
+              ),
+              codeblockDecoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              blockquoteDecoration: BoxDecoration(
+                border:
+                    Border(left: BorderSide(color: theme.dividerColor, width: 4)),
+              ),
+            ),
+          ),
       );
   }
 
