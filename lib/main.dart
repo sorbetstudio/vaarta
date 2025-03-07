@@ -3,11 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/database_helper.dart';
-import 'dart:ui';
-import 'package:vaarta/screens/chat_list_screen.dart'; // Explicit import path
-import 'package:vaarta/screens/settings_screen.dart'; // Explicit import path
+// import 'dart:ui';
+// import 'package:vaarta/screens/chat_list_screen.dart'; // Explicit import path
+// import 'package:vaarta/screens/settings_screen.dart'; // Explicit import path
 import 'package:vaarta/screens/chat_screen.dart'; // Explicit import path
-import 'services/llm_client.dart';
+// import 'services/llm_client.dart';
 import 'package:provider/provider.dart'; // Import Provider
 import 'package:flutter_markdown/flutter_markdown.dart';
 

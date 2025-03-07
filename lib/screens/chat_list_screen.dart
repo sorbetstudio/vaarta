@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/database_helper.dart';
-import '../main.dart'; // Assuming main.dart is in the parent directory
+// import '../main.dart'; // Assuming main.dart is in the parent directory //todo
 import 'package:vaarta/screens/chat_screen.dart'; // Explicit import path
 
 
@@ -30,12 +30,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
       _chatList = chats;
     });
   }
-    Future<void> _deleteChat(String chatId) async {
-        await dbHelper.deleteChat(chatId);
-
-        _loadChats();
-    }
-
+    // Future<void> _deleteChat(String chatId) async {
+    //     await dbHelper.deleteChat(chatId);
+    //     _loadChats();
+    // }
 
   @override
   Widget build(BuildContext context) {
