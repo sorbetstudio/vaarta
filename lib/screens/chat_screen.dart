@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui';
-import '../main.dart';
 import '../services/database_helper.dart';
 import '../services/llm_client.dart';
 import 'chat_list_screen.dart';
 import 'settings_screen.dart';
 import 'package:vaarta/widgets/sk_ui.dart';
 import 'package:vaarta/utils/utils.dart';
+import 'package:vaarta/models/models.dart';
 
 /// Displays a chat interface for sending and receiving messages with an AI.
 class ChatScreen extends StatefulWidget {

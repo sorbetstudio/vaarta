@@ -6,7 +6,8 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart'; // For generating unique chatIds
 
-import '../main.dart'; // Import your ChatMessage class from main.dart
+
+import 'package:vaarta/models/models.dart'; // Import your ChatMessage class from main.dart
 
 class DatabaseHelper {
   static const _databaseName = "ChatDatabase.db";

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/database_helper.dart';
-// import '../main.dart'; // Assuming main.dart is in the parent directory //todo
 import 'package:vaarta/screens/chat_screen.dart'; // Explicit import path
+// import 'package:vaarta/models/models.dart';
 
 
 class ChatListScreen extends StatefulWidget {
