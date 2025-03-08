@@ -9,6 +9,7 @@ import 'chat_list_screen.dart';
 import 'settings_screen.dart';
 import '../services/llm_client.dart';
 import '../main.dart'; // Import ChatMessage from main.dart
+import 'package:vaarta/widgets/sk_ui.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
