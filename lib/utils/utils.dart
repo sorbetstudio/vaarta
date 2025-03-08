@@ -1,0 +1,1 @@
+export 'src/slide_right_route.dart';

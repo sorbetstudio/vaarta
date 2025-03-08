@@ -8,7 +8,8 @@ import '../services/database_helper.dart';
 import '../services/llm_client.dart';
 import 'chat_list_screen.dart';
 import 'settings_screen.dart';
-import 'package:vaarta/widgets/sk_ui.dart'; // Import reusable widgets
+import 'package:vaarta/widgets/sk_ui.dart';
+import 'package:vaarta/utils/utils.dart';
 
 /// Displays a chat interface for sending and receiving messages with an AI.
 class ChatScreen extends StatefulWidget {
@@ -547,21 +548,4 @@ class _ThinkingAnimationState extends State<ThinkingAnimation> with TickerProvid
     final f = (2 * value) - 2;
     return 0.5 * f * f * f + 1;
   }
-}
-
-class SlideRightRoute extends PageRouteBuilder {
-  final Widget page;
-
-  SlideRightRoute({required this.page})
-      : super(
-    pageBuilder: (context, animation, secondaryAnimation) => page,
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      const begin = Offset(-1.0, 0.0);
-      const end = Offset.zero;
-      const curve = Curves.easeInOut;
-      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-      var offsetAnimation = animation.drive(tween);
-      return SlideTransition(position: offsetAnimation, child: child);
-    },
-  );
 }
