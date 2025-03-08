@@ -222,22 +222,39 @@ class _ChatScreenState extends State<ChatScreen> {
     final isDark = theme.brightness == Brightness.dark;
     return PreferredSize(
       preferredSize: const Size.fromHeight(kToolbarHeight),
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: AppBar(
-            backgroundColor: isDark ? Colors.black.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.7),
-            elevation: 0,
-            title: const Text('Chat'),
-            leading: IconButton(icon: const Icon(Icons.chat_bubble_outline), onPressed: _openChatList),
-            actions: [
-              IconButton(icon: const Icon(Icons.edit_note), onPressed: _editSystemPrompt),
-              IconButton(
-                icon: Icon(_isEditingMessages ? Icons.visibility : Icons.edit),
-                onPressed: () => setState(() => _isEditingMessages = !_isEditingMessages),
+      child: Container(
+        color: Colors.transparent,
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.white.withValues(alpha: 0.3),
+              child: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 1,
+                title: const Text('Chat'),
+                leading: IconButton(
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    onPressed: _openChatList
+                ),
+                actions: [
+                  IconButton(
+                      icon: const Icon(Icons.edit_note),
+                      onPressed: _editSystemPrompt
+                  ),
+                  IconButton(
+                    icon: Icon(_isEditingMessages ? Icons.visibility : Icons.edit),
+                    onPressed: () => setState(() => _isEditingMessages = !_isEditingMessages),
+                  ),
+                  IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: _openSettings
+                  ),
+                ],
               ),
-              IconButton(icon: const Icon(Icons.settings), onPressed: _openSettings),
-            ],
+            ),
           ),
         ),
       ),
