@@ -6,7 +6,7 @@ import 'thinking_bubble.dart';
 class StreamingMessage extends StatelessWidget {
   final String content; // The content to display, possibly with <think> tags
 
-  const StreamingMessage({Key? key, required this.content}) : super(key: key);
+  const StreamingMessage({Key? key, required this.content, required ThemeData theme, required bool isDark}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +34,7 @@ class StreamingMessage extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark
                 ? theme.colorScheme.surface
-                : theme.colorScheme.surface.withOpacity(0.7),
+                : theme.colorScheme.surface.withValues(alpha:0.7),
             borderRadius: BorderRadius.circular(16),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

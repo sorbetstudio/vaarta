@@ -42,10 +42,10 @@ class _ThinkingBubbleState extends State<ThinkingBubble>
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withOpacity(0.15),
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.3),
+          color: theme.colorScheme.primary.withValues(alpha:0.3),
           width: 1,
         ),
       ),
@@ -97,7 +97,7 @@ class _ThinkingBubbleState extends State<ThinkingBubble>
                   data: widget.content,
                   styleSheet: MarkdownStyleSheet(
                     p: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.9),
+                      color: theme.colorScheme.onSurface.withValues(alpha:0.9),
                       fontSize: 14,
                     ),
                     code: TextStyle(
