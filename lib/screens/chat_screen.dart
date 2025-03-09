@@ -1,5 +1,5 @@
 // lib/screens/chat_screen.dart
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -34,6 +34,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String _streamedResponse = "";
   bool _isScrolling = false;
   bool _isEditingMessages = false;
+  StreamSubscription<String>? _streamSubscription; // Add StreamSubscription
 
   // Preferences
   String _apiKey = '';
@@ -168,27 +169,47 @@ class _ChatScreenState extends State<ChatScreen> {
         ..._messages.map((msg) => LLMMessage(role: msg.isUser ? 'user' : 'assistant', content: msg.content)),
       ];
 
-      await for (final chunk in _llmClient.streamCompletion(messages)) {
-        if (!mounted) return;
-        setState(() {
-          _streamedResponse += chunk;
-          if (_useHapticFeedback) HapticFeedback.lightImpact();
-        });
-        _smoothScrollToBottom();
-      }
-
-      final aiMessage = ChatMessage(
-        chatId: widget.chatId,
-        content: _streamedResponse,
-        isUser: false,
-        timestamp: DateTime.now(),
+      _streamSubscription = _llmClient.streamCompletion(messages).listen(
+            (chunk) {
+          if (!mounted) return;
+          setState(() {
+            _streamedResponse += chunk;
+            if (_useHapticFeedback) HapticFeedback.lightImpact();
+          });
+          _smoothScrollToBottom();
+        },
+        onDone: () {
+          final aiMessage = ChatMessage(
+            chatId: widget.chatId,
+            content: _streamedResponse,
+            isUser: false,
+            timestamp: DateTime.now(),
+          );
+          setState(() {
+            _messages.add(aiMessage);
+            _isGenerating = false;
+            _streamSubscription = null; // Clear subscription on completion
+          });
+          dbHelper.insertMessage(aiMessage);
+          _snapToBottom();
+        },
+        onError: (error) {
+          final errorMessage = ChatMessage(
+            chatId: widget.chatId,
+            content: 'Error: $error',
+            isUser: false,
+            timestamp: DateTime.now(),
+          );
+          setState(() {
+            _messages.add(errorMessage);
+            _isGenerating = false;
+            _streamSubscription = null; // Clear subscription on error
+          });
+          dbHelper.insertMessage(errorMessage);
+          _snapToBottom();
+        },
+        cancelOnError: true,
       );
-      setState(() {
-        _messages.add(aiMessage);
-        _isGenerating = false;
-      });
-      await dbHelper.insertMessage(aiMessage);
-      _snapToBottom();
     } catch (e) {
       final errorMessage = ChatMessage(
         chatId: widget.chatId,
@@ -199,11 +220,22 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         _messages.add(errorMessage);
         _isGenerating = false;
+        _streamSubscription = null; // Clear subscription on exception
       });
-      await dbHelper.insertMessage(errorMessage);
+      dbHelper.insertMessage(errorMessage);
       _snapToBottom();
     }
   }
+
+  /// Stops the stream generation.
+  void _stopStream() {
+    _streamSubscription?.cancel(); // Cancel the stream subscription
+    setState(() {
+      _isGenerating = false; // Update the UI to reflect stopped state
+      _streamSubscription = null; // Clear the subscription
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -465,9 +497,9 @@ class _ChatScreenState extends State<ChatScreen> {
             const SizedBox(width: 8),
             FloatingActionButton(
               mini: true,
-              onPressed: _isGenerating ? null : () => _sendMessage(_textController.text),
+              onPressed: _isGenerating ? _stopStream : () => _sendMessage(_textController.text), // Conditional onPressed
               backgroundColor: theme.colorScheme.primary,
-              child: Icon(Icons.send, color: theme.colorScheme.onPrimary),
+              child: Icon(_isGenerating ? Icons.stop : Icons.send, color: theme.colorScheme.onPrimary), // Conditional Icon
             ),
           ],
         ),
@@ -480,6 +512,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _textController.dispose();
     _scrollController.dispose();
     _systemPromptController.dispose();
+    _streamSubscription?.cancel(); // Cancel stream subscription on dispose
     super.dispose();
   }
 }
@@ -494,7 +527,14 @@ class ThinkingAnimation extends StatefulWidget {
   State<ThinkingAnimation> createState() => _ThinkingAnimationState();
 }
 
-class _ThinkingAnimationState extends State<ThinkingAnimation> with TickerProviderStateMixin {
+class _ThinkingAnimationState extends _ThinkingAnimationStateBase {
+  @override
+  Widget build(BuildContext context) {
+    return buildThinkingAnimation(context);
+  }
+}
+
+abstract class _ThinkingAnimationStateBase<T extends ThinkingAnimation> extends State<ThinkingAnimation> with TickerProviderStateMixin {
   late AnimationController _dotController;
   late AnimationController _textController;
   late Animation<double> _textOpacity;
@@ -514,8 +554,7 @@ class _ThinkingAnimationState extends State<ThinkingAnimation> with TickerProvid
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget buildThinkingAnimation(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(

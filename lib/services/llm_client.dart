@@ -1,5 +1,4 @@
 // lib/services/llm_client.dart
-
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:logging/logging.dart';
@@ -29,6 +28,7 @@ class OpenRouterConfig {
   final bool? promptTruncation;
   final Map<String, dynamic>? functions;
   final String? functionCall;
+  final bool? stream; // Add stream config
   final String? httpReferer;
   final String? xTitle;
 
@@ -51,6 +51,7 @@ class OpenRouterConfig {
     this.promptTruncation,
     this.functions,
     this.functionCall,
+    this.stream = true, // Default stream to true
     this.httpReferer,
     this.xTitle,
   });
@@ -81,6 +82,7 @@ class OpenRouterConfig {
     if (promptTruncation != null) json['prompt_truncation'] = promptTruncation;
     if (functions != null) json['functions'] = functions;
     if (functionCall != null) json['function_call'] = functionCall;
+    if (stream != null) json['stream'] = stream; // Include stream in json
 
     return json;
   }
@@ -132,7 +134,7 @@ class LLMClient {
       case LLMProvider.gemini:
         return 'https://generativelanguage.googleapis.com/v1';
       case null:
-        // TODO: Handle this case.
+      // TODO: Handle this case.
         throw UnimplementedError();
     }
   }
@@ -151,7 +153,7 @@ class LLMClient {
           ...baseHeaders,
           'Authorization': 'Bearer ${config.apiKey}',
           'HTTP-Referer':
-              config.openRouterConfig?.httpReferer ??
+          config.openRouterConfig?.httpReferer ??
               'https://github.com/yourusername/yourapp',
         };
 
@@ -171,7 +173,7 @@ class LLMClient {
       case LLMProvider.gemini:
         return {...baseHeaders, 'x-goog-api-key': config.apiKey};
       case null:
-        // TODO: Handle this case.
+      // TODO: Handle this case.
         throw UnimplementedError();
     }
   }
@@ -224,7 +226,7 @@ class LLMClient {
         }
 
         return result;
-      // Add other providers' request body formats
+    // Add other providers' request body formats
       default:
         throw UnimplementedError(
           'Provider ${config.provider} not implemented yet',
@@ -244,9 +246,9 @@ class LLMClient {
 
     try {
       final request =
-          http.Request('POST', Uri.parse(url))
-            ..headers.addAll(headers)
-            ..body = jsonEncode(body);
+      http.Request('POST', Uri.parse(url))
+        ..headers.addAll(headers)
+        ..body = jsonEncode(body);
 
       final response = await http.Client().send(request);
 
@@ -290,7 +292,7 @@ class LLMClient {
         return chunk['choices'][0]['delta']['content'] ?? '';
       case LLMProvider.anthropic:
         return chunk['delta']['text'] ?? '';
-      // Add other providers' chunk parsing logic
+    // Add other providers' chunk parsing logic
       default:
         throw UnimplementedError(
           'Provider ${config.provider} not implemented yet',
