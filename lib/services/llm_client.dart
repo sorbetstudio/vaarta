@@ -1,4 +1,4 @@
-// lib/llm/llm_client.dart
+// lib/services/llm_client.dart
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
