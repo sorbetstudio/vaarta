@@ -1,3 +1,5 @@
+// lib/widgets/src/thinking_bubble.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
@@ -5,7 +7,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 class ThinkingBubble extends StatefulWidget {
   final String content; // The content to display inside the bubble
 
-  const ThinkingBubble({Key? key, required this.content}) : super(key: key);
+  const ThinkingBubble({super.key, required this.content});
 
   @override
   State<ThinkingBubble> createState() => _ThinkingBubbleState();
