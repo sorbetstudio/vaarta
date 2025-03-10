@@ -34,7 +34,10 @@ class _ChatScreenState extends State<ChatScreen> {
   String _streamedResponse = "";
   bool _isScrolling = false;
   bool _isEditingMessages = false;
-  StreamSubscription<String>? _streamSubscription; // Add StreamSubscription
+  
+  // Stream controller for RichMessageView
+  late StreamController<String> _messageStreamController;
+  StreamSubscription<String>? _streamSubscription;
 
   // Preferences
   String _apiKey = '';
@@ -53,6 +56,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _messageStreamController = StreamController<String>.broadcast();
     _loadMessages();
     _loadSettings();
   }
@@ -151,12 +155,17 @@ class _ChatScreenState extends State<ChatScreen> {
       timestamp: DateTime.now(),
     );
 
+    // Fixed: Close StreamController outside of setState
+    await _messageStreamController.close();
+    _messageStreamController = StreamController<String>.broadcast();
+
     setState(() {
       _messages.add(userMessage);
       _isGenerating = true;
       _streamedResponse = "";
       _textController.clear();
     });
+    
     await dbHelper.insertMessage(userMessage);
     _snapToBottom();
 
@@ -175,6 +184,8 @@ class _ChatScreenState extends State<ChatScreen> {
           setState(() {
             _streamedResponse += chunk;
             if (_useHapticFeedback) HapticFeedback.lightImpact();
+            // Add the chunk to the stream controller
+            _messageStreamController.add(chunk);
           });
           _smoothScrollToBottom();
         },
@@ -188,7 +199,7 @@ class _ChatScreenState extends State<ChatScreen> {
           setState(() {
             _messages.add(aiMessage);
             _isGenerating = false;
-            _streamSubscription = null; // Clear subscription on completion
+            _streamSubscription = null;
           });
           dbHelper.insertMessage(aiMessage);
           _snapToBottom();
@@ -203,7 +214,7 @@ class _ChatScreenState extends State<ChatScreen> {
           setState(() {
             _messages.add(errorMessage);
             _isGenerating = false;
-            _streamSubscription = null; // Clear subscription on error
+            _streamSubscription = null;
           });
           dbHelper.insertMessage(errorMessage);
           _snapToBottom();
@@ -220,20 +231,41 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         _messages.add(errorMessage);
         _isGenerating = false;
-        _streamSubscription = null; // Clear subscription on exception
+        _streamSubscription = null;
       });
       dbHelper.insertMessage(errorMessage);
       _snapToBottom();
     }
   }
 
-  /// Stops the stream generation.
+  /// Stops the stream generation and saves the partial response.
   void _stopStream() {
-    _streamSubscription?.cancel(); // Cancel the stream subscription
-    setState(() {
-      _isGenerating = false; // Update the UI to reflect stopped state
-      _streamSubscription = null; // Clear the subscription
-    });
+    _streamSubscription?.cancel();
+    
+    // Fixed: Save the partial response instead of discarding it
+    if (_streamedResponse.isNotEmpty) {
+      final aiMessage = ChatMessage(
+        chatId: widget.chatId,
+        content: _streamedResponse,
+        isUser: false,
+        timestamp: DateTime.now(),
+      );
+      
+      setState(() {
+        _messages.add(aiMessage);
+        _isGenerating = false;
+        _streamSubscription = null;
+      });
+      
+      dbHelper.insertMessage(aiMessage);
+    } else {
+      setState(() {
+        _isGenerating = false;
+        _streamSubscription = null;
+      });
+    }
+    
+    _snapToBottom();
   }
 
 
@@ -325,7 +357,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   /// Builds the list view for displaying chat messages.
   Widget _buildMessageListView(ThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(8.0),
@@ -341,7 +372,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: ProcessingAnimation(color: theme.colorScheme.primary),
               )
-                  : StreamingMessage(content: _streamedResponse, theme: theme, isDark: isDark),
+                  : RichMessageView(
+                      messageStream: _messageStreamController.stream,
+                    ),
             ),
           );
         }
@@ -364,7 +397,9 @@ class _ChatScreenState extends State<ChatScreen> {
         alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
           constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
-          child: isUserMessage ? _buildUserMessage(message, theme) : _buildAssistantMessage(message, theme),
+          child: isUserMessage 
+              ? _buildUserMessage(message, theme) 
+              : _buildAssistantMessage(message, theme),
         ),
       ),
     );
@@ -419,47 +454,36 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildAssistantMessage(ChatMessage message, ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
     final messageController = TextEditingController(text: message.content);
+    
     return Container(
-      decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surface : theme.colorScheme.surface.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
       child: _isEditingMessages
-          ? TextFormField(
-        controller: messageController,
-        style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontSize: 16),
-        decoration: InputDecoration.collapsed(
-          hintText: "Enter message",
-          hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
-        ),
-        onChanged: (value) {
-          final index = _messages.indexWhere((m) => m.timestamp == message.timestamp);
-          if (index != -1) {
-            _messages[index] = message.copyWith(content: value);
-            dbHelper.updateMessage(message.copyWith(content: value));
-          }
-        },
-        maxLines: null,
-      )
-          : MarkdownBody(
-        data: message.content,
-        styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-          p: TextStyle(color: theme.textTheme.bodyLarge?.color, fontSize: 16),
-          code: TextStyle(
-            backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-            color: theme.colorScheme.onSurface,
-            fontFamily: 'monospace',
-          ),
-          codeblockDecoration: BoxDecoration(
-            color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          blockquoteDecoration: BoxDecoration(
-            border: Border(left: BorderSide(color: theme.dividerColor, width: 4)),
-          ),
-        ),
-      ),
+          ? Container(
+              decoration: BoxDecoration(
+                color: isDark ? theme.colorScheme.surface : theme.colorScheme.surface.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: TextFormField(
+                controller: messageController,
+                style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontSize: 16),
+                decoration: InputDecoration.collapsed(
+                  hintText: "Enter message",
+                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                ),
+                onChanged: (value) {
+                  final index = _messages.indexWhere((m) => m.timestamp == message.timestamp);
+                  if (index != -1) {
+                    _messages[index] = message.copyWith(content: value);
+                    dbHelper.updateMessage(message.copyWith(content: value));
+                  }
+                },
+                maxLines: null,
+              ),
+            )
+          : RichMessageView(
+              content: message.content,
+            ),
     );
   }
 
@@ -497,9 +521,9 @@ class _ChatScreenState extends State<ChatScreen> {
             const SizedBox(width: 8),
             FloatingActionButton(
               mini: true,
-              onPressed: _isGenerating ? _stopStream : () => _sendMessage(_textController.text), // Conditional onPressed
+              onPressed: _isGenerating ? _stopStream : () => _sendMessage(_textController.text),
               backgroundColor: theme.colorScheme.primary,
-              child: Icon(_isGenerating ? Icons.stop : Icons.send, color: theme.colorScheme.onPrimary), // Conditional Icon
+              child: Icon(_isGenerating ? Icons.stop : Icons.send, color: theme.colorScheme.onPrimary),
             ),
           ],
         ),
@@ -512,7 +536,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _textController.dispose();
     _scrollController.dispose();
     _systemPromptController.dispose();
-    _streamSubscription?.cancel(); // Cancel stream subscription on dispose
+    _streamSubscription?.cancel();
+    _messageStreamController.close();
     super.dispose();
   }
 }
