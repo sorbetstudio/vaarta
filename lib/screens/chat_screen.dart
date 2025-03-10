@@ -372,7 +372,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: ProcessingAnimation(color: theme.colorScheme.primary),
               )
-                  : RichMessageView(
+                  : AssistantMessage(
                       messageStream: _messageStreamController.stream,
                     ),
             ),
@@ -484,7 +484,7 @@ class _ChatScreenState extends State<ChatScreen> {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RichMessageView(
+                AssistantMessage(
                   content: message.content,
                 ),
                 const SizedBox(height: 8),
