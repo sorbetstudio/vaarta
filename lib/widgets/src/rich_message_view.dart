@@ -151,7 +151,7 @@ class _RichMessageViewState extends State<RichMessageView> {
             decoration: BoxDecoration(
               color: isDark
                   ? theme.colorScheme.surface
-                  : theme.colorScheme.surface.withOpacity(0.7),
+                  : theme.colorScheme.surface.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(16),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

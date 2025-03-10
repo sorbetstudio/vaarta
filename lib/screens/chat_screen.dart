@@ -460,7 +460,7 @@ class _ChatScreenState extends State<ChatScreen> {
       child: _isEditingMessages
           ? Container(
               decoration: BoxDecoration(
-                color: isDark ? theme.colorScheme.surface : theme.colorScheme.surface.withOpacity(0.7),
+                color: isDark ? theme.colorScheme.surface : theme.colorScheme.surface.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(16),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -469,7 +469,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontSize: 16),
                 decoration: InputDecoration.collapsed(
                   hintText: "Enter message",
-                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                 ),
                 onChanged: (value) {
                   final index = _messages.indexWhere((m) => m.timestamp == message.timestamp);
@@ -481,10 +481,71 @@ class _ChatScreenState extends State<ChatScreen> {
                 maxLines: null,
               ),
             )
-          : RichMessageView(
-              content: message.content,
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichMessageView(
+                  content: message.content,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Regenerate Button
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      color: theme.colorScheme.primary,
+                      tooltip: 'Regenerate',
+                      onPressed: _isGenerating ? null : () => _regenerateMessage(message),
+                    ),
+                    // Copy Button
+                    IconButton(
+                      icon: const Icon(Icons.copy),
+                      color: theme.colorScheme.primary,
+                      tooltip: 'Copy',
+                      onPressed: () => _copyMessageToClipboard(message.content),
+                    ),
+                  ],
+                ),
+              ],
             ),
     );
+  }
+
+  /// Copies the message content to clipboard
+  void _copyMessageToClipboard(String content) {
+    Clipboard.setData(ClipboardData(text: content));
+    if (_useHapticFeedback) {
+      HapticFeedback.lightImpact();
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Message copied to clipboard')),
+    );
+  }
+
+  /// Regenerates a specific AI message by re-sending the last user message
+  void _regenerateMessage(ChatMessage originalMessage) {
+    // Find the last user message before this AI message
+    final lastUserMessage = _messages.lastWhere(
+      (msg) => msg.isUser,
+      orElse: () => ChatMessage(
+        chatId: widget.chatId,
+        content: '',
+        isUser: true,
+        timestamp: DateTime.now(),
+      ),
+    );
+
+    // If there's no previous user message, do nothing
+    if (!lastUserMessage.isUser || lastUserMessage.content.isEmpty) return;
+
+    // Remove the last AI message (the one being regenerated)
+    setState(() {
+      _messages.removeWhere((msg) => msg.timestamp == originalMessage.timestamp);
+    });
+
+    // Send the last user message again to regenerate the response
+    _sendMessage(lastUserMessage.content);
   }
 
   /// Builds the input area for sending messages.
