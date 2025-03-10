@@ -19,7 +19,7 @@ class LiveResponseRenderer extends StatefulWidget {
 class _LiveResponseRendererState extends State<LiveResponseRenderer> {
   final List<Widget> _renderedWidgets = [];
   String _accumulatedResponse = ""; // Accumulate text here
-  bool _hasThinkingContent = false; // Add a state variable
+  // bool _hasThinkingContent = false; // Add a state variable
 
   @override
   void initState() {
@@ -52,7 +52,7 @@ class _LiveResponseRendererState extends State<LiveResponseRenderer> {
           .join('\n\n');
       if (thinkingContent.isNotEmpty) {
         _renderedWidgets.add(ThinkingBubble(content: thinkingContent));
-        _hasThinkingContent = true;  // Set the state variable
+        // _hasThinkingContent = true;  // Set the state variable
         print('Added ThinkingBubble: $thinkingContent');
       }
       remainingChunk = remainingChunk.replaceAll(thinkRegex, '').trim();
