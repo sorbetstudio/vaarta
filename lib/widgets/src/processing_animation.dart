@@ -1,21 +1,23 @@
+// lib/widgets/src/processing_animation.dart
+
 import 'package:flutter/material.dart';
 
-// An animated widget showing a "thinking" indicator with bouncing dots and text
-class ThinkingAnimation extends StatefulWidget {
+// An animated widget showing a "processing" indicator with bouncing dots and text
+class ProcessingAnimation extends StatefulWidget {
   final Color color; // Color of the dots and text
-  final String thinkingText; // Text to display next to the animation
+  final String processingText; // Text to display next to the animation
 
-  const ThinkingAnimation({
+  const ProcessingAnimation({
     super.key,
     required this.color,
-    this.thinkingText = "Thinking...",
+    this.processingText = "processing...",
   });
 
   @override
-  State<ThinkingAnimation> createState() => _ThinkingAnimationState();
+  State<ProcessingAnimation> createState() => _ProcessingAnimationState();
 }
 
-class _ThinkingAnimationState extends State<ThinkingAnimation>
+class _ProcessingAnimationState extends State<ProcessingAnimation>
     with TickerProviderStateMixin {
   late AnimationController _dotController;
   late AnimationController _textController;
@@ -84,7 +86,7 @@ class _ThinkingAnimationState extends State<ThinkingAnimation>
           FadeTransition(
             opacity: _textOpacity,
             child: Text(
-              widget.thinkingText,
+              widget.processingText,
               style: TextStyle(
                 color: widget.color,
                 fontWeight: FontWeight.w500,
