@@ -1,4 +1,4 @@
-i // lib/widgets/src/live_response_renderer.dart
+// lib/widgets/src/live_response_renderer.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
