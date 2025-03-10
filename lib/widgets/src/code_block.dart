@@ -21,7 +21,7 @@ class CodeBlock extends StatefulWidget { // Changed to StatefulWidget
 
 class _CodeBlockState extends State<CodeBlock> {
   String _accumulatedContent = '';
-  late StreamSubscription<String>? _streamSubscription; // Subscribe to the stream
+  late StreamSubscription<String>? _streamSubscription = null; // Initialize with null here
 
   @override
   void initState() {
@@ -39,7 +39,9 @@ class _CodeBlockState extends State<CodeBlock> {
 
   @override
   void dispose() {
-    _streamSubscription?.cancel(); // Cancel subscription on dispose
+    if (_streamSubscription != null) {
+      _streamSubscription?.cancel();
+    }
     super.dispose();
   }
   @override

@@ -19,6 +19,7 @@ class LiveResponseRenderer extends StatefulWidget {
 class _LiveResponseRendererState extends State<LiveResponseRenderer> {
   final List<Widget> _renderedWidgets = [];
   String _accumulatedResponse = ""; // Accumulate text here
+  bool _hasThinkingContent = false; // Add a state variable
 
   @override
   void initState() {
@@ -51,7 +52,7 @@ class _LiveResponseRendererState extends State<LiveResponseRenderer> {
           .join('\n\n');
       if (thinkingContent.isNotEmpty) {
         _renderedWidgets.add(ThinkingBubble(content: thinkingContent));
-        ThinkingBubble.hasThinkingContent = true;
+        _hasThinkingContent = true;  // Set the state variable
         print('Added ThinkingBubble: $thinkingContent');
       }
       remainingChunk = remainingChunk.replaceAll(thinkRegex, '').trim();
@@ -102,9 +103,9 @@ class _LiveResponseRendererState extends State<LiveResponseRenderer> {
     print('Rendered widgets count: ${_renderedWidgets.length}, Accumulated text length: ${_accumulatedResponse.length}');
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
-     // Add a MarkdownBody for any remaining accumulated text
+    // Add a MarkdownBody for any remaining accumulated text
     List<Widget> finalWidgets = List.from(_renderedWidgets); // Copy the list
     if (_accumulatedResponse.isNotEmpty) {
       finalWidgets.add(MarkdownBody(data: _accumulatedResponse));
