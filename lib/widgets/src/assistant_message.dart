@@ -33,14 +33,8 @@ abstract class TokenParser {
   List<ParsedToken> parse(String content);
 }
 
-/// Default implementation of token parsing
+/// Improved implementation of token parsing with better code detection
 class DefaultTokenParser implements TokenParser {
-  final List<RegExp> _tokenPatterns = [
-    RegExp(r'<think>([\s\S]*?)<\/think>', multiLine: true),
-    RegExp(r'<tool>([\s\S]*?)<\/tool>', multiLine: true),
-    RegExp(r'<code(?:\s+lang="([^"]*)")?>([\s\S]*?)<\/code>', multiLine: true),
-  ];
-
   @override
   List<ParsedToken> parse(String content) {
     final List<ParsedToken> parsedTokens = [];
@@ -60,7 +54,7 @@ class DefaultTokenParser implements TokenParser {
     }
 
     // Parse tool call tokens
-    final toolMatches = RegExp(r'<tool>([\s\S]*?)<\/tool>', multiLine: true).allMatches(content);
+    final toolMatches = RegExp(r'<tool>([\s\S]*?)<\/tool>', multiLine: true).allMatches(remainingContent);
     for (final match in toolMatches) {
       final toolContent = match.group(1);
       if (toolContent != null && toolContent.isNotEmpty) {
@@ -72,8 +66,9 @@ class DefaultTokenParser implements TokenParser {
       }
     }
 
-    // Parse code block tokens
-    final codeMatches = RegExp(r'<code(?:\s+lang="([^"]*)")?>([\s\S]*?)<\/code>', multiLine: true).allMatches(content);
+    // Parse code block tokens - Modified to improve detection
+    // First try specific code tags
+    final codeMatches = RegExp(r'<code(?:\s+lang="([^"]*)")?>([\s\S]*?)<\/code>', multiLine: true).allMatches(remainingContent);
     for (final match in codeMatches) {
       final codeContent = match.group(2);
       final language = match.group(1);
@@ -87,7 +82,22 @@ class DefaultTokenParser implements TokenParser {
       }
     }
 
-    // Add remaining content as plain text
+    // Then check for markdown-style code blocks (```code```)
+    final markdownCodeMatches = RegExp(r'```([a-z]*)\n([\s\S]*?)```', multiLine: true).allMatches(remainingContent);
+    for (final match in markdownCodeMatches) {
+      final codeContent = match.group(2);
+      final language = match.group(1);
+      if (codeContent != null && codeContent.isNotEmpty) {
+        parsedTokens.add(ParsedToken(
+          type: TokenType.codeBlock,
+          content: codeContent,
+          metadata: language != null && language.isNotEmpty ? {'language': language} : null,
+        ));
+        remainingContent = remainingContent.replaceFirst(match.group(0)!, '').trim();
+      }
+    }
+
+    // Add remaining content as plain text if not empty
     if (remainingContent.isNotEmpty) {
       parsedTokens.add(ParsedToken(
         type: TokenType.plainText,
@@ -125,8 +135,8 @@ class AssistantMessage extends StatefulWidget {
     this.content,
     this.config = const AssistantMessageConfig(),
     this.customTokenParser,
-  }) : assert(messageStream != null || content != null, 
-        'Either messageStream or content must be provided');
+  }) : assert(messageStream != null || content != null,
+  'Either messageStream or content must be provided');
 
   @override
   State<AssistantMessage> createState() => _AssistantMessageState();
@@ -137,6 +147,7 @@ class _AssistantMessageState extends State<AssistantMessage> {
   String _accumulatedContent = '';
   List<ParsedToken> _parsedTokens = [];
   late TokenParser _tokenParser;
+  bool _isStreaming = false;
 
   @override
   void initState() {
@@ -146,8 +157,23 @@ class _AssistantMessageState extends State<AssistantMessage> {
     if (widget.content != null) {
       _processContent(widget.content!);
     } else if (widget.messageStream != null) {
-      _streamSubscription = widget.messageStream!.listen(_handleStreamUpdate);
+      _isStreaming = true;
+      _setupStreamSubscription();
     }
+  }
+
+  void _setupStreamSubscription() {
+    _streamSubscription = widget.messageStream!.listen(
+          (chunk) {
+        _accumulatedContent += chunk;
+        _processContent(_accumulatedContent);
+      },
+      onDone: () {
+        setState(() {
+          _isStreaming = false;
+        });
+      },
+    );
   }
 
   @override
@@ -158,15 +184,16 @@ class _AssistantMessageState extends State<AssistantMessage> {
       _processContent(widget.content!);
     } else if (widget.messageStream != oldWidget.messageStream) {
       _streamSubscription?.cancel();
+      _accumulatedContent = '';
+      _parsedTokens = [];
+
       if (widget.messageStream != null) {
-        _streamSubscription = widget.messageStream!.listen(_handleStreamUpdate);
+        _isStreaming = true;
+        _setupStreamSubscription();
+      } else {
+        _isStreaming = false;
       }
     }
-  }
-
-  void _handleStreamUpdate(String chunk) {
-    _accumulatedContent += chunk;
-    _processContent(_accumulatedContent);
   }
 
   void _processContent(String content) {
@@ -198,10 +225,24 @@ class _AssistantMessageState extends State<AssistantMessage> {
           widgets.add(ToolCallBubble(content: token.content));
           break;
         case TokenType.codeBlock:
-          widgets.add(CodeBlock(
-            content: token.content,
-            language: token.metadata?['language'],
-          ));
+        // Create CodeBlock with either direct content or a content stream
+          if (_isStreaming) {
+            // For streaming, we need to create a stream controller that can be updated
+            // with each tokenization pass
+            final controller = StreamController<String>();
+            controller.add(token.content);
+            widgets.add(CodeBlock(
+              contentStream: controller.stream,
+              language: token.metadata?['language'],
+            ));
+            // Schedule closure after the build is complete
+            Future.microtask(() => controller.close());
+          } else {
+            widgets.add(CodeBlock(
+              content: token.content,
+              language: token.metadata?['language'],
+            ));
+          }
           break;
         case TokenType.plainText:
           if (token.content.isNotEmpty) {
@@ -219,7 +260,7 @@ class _AssistantMessageState extends State<AssistantMessage> {
       decoration: BoxDecoration(
         color: isDark
             ? theme.colorScheme.surface
-            : theme.colorScheme.surface.withValues(alpha: 0.7),
+            : theme.colorScheme.surface.withOpacity(0.7),
         borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

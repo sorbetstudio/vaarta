@@ -1,11 +1,11 @@
 // lib/widgets/src/code_block.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:async'; // Add this line
+import 'dart:async';
 
-class CodeBlock extends StatefulWidget { // Changed to StatefulWidget
-  final Stream<String>? contentStream; // Stream of code content
-  final String? content; // Static content (for fallback)
+class CodeBlock extends StatefulWidget {
+  final Stream<String>? contentStream;
+  final String? content;
   final String? language;
 
   const CodeBlock({
@@ -21,45 +21,82 @@ class CodeBlock extends StatefulWidget { // Changed to StatefulWidget
 
 class _CodeBlockState extends State<CodeBlock> {
   String _accumulatedContent = '';
-  late StreamSubscription<String>? _streamSubscription = null; // Initialize with null here
+  StreamSubscription<String>? _streamSubscription;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.contentStream != null) {
-      _streamSubscription = widget.contentStream!.listen((chunk) {
-        setState(() {
-          _accumulatedContent += chunk;
-        });
-      });
-    } else {
+
+    // Initialize with static content
+    if (widget.content != null) {
       _accumulatedContent = widget.content ?? '';
+    }
+
+    // Setup stream subscription
+    if (widget.contentStream != null) {
+      _isLoading = true;
+      _streamSubscription = widget.contentStream!.listen(
+              (chunk) {
+            if (mounted) {
+              setState(() {
+                _accumulatedContent += chunk;
+              });
+            }
+          },
+          onDone: () {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          },
+          onError: (error) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          }
+      );
     }
   }
 
   @override
-  void dispose() {
-    if (_streamSubscription != null) {
-      _streamSubscription?.cancel();
-    }
-    super.dispose();
-  }
-  @override
-  void didUpdateWidget(covariant CodeBlock oldWidget) {
+  void didUpdateWidget(CodeBlock oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if(widget.contentStream != oldWidget.contentStream){
+
+    // Handle content changes
+    if (widget.content != oldWidget.content && widget.content != null) {
+      setState(() {
+        _accumulatedContent = widget.content ?? '';
+      });
+    }
+
+    // Handle stream changes
+    if (widget.contentStream != oldWidget.contentStream) {
       _streamSubscription?.cancel();
       _accumulatedContent = '';
-      if(widget.contentStream != null){
-        _streamSubscription = widget.contentStream!.listen((event) {
-          setState(() {
-            _accumulatedContent += event;
-          });
-        });
+
+      if (widget.contentStream != null) {
+        _isLoading = true;
+        _streamSubscription = widget.contentStream!.listen(
+                (chunk) {
+              if (mounted) {
+                setState(() {
+                  _accumulatedContent += chunk;
+                });
+              }
+            },
+            onDone: () {
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
+            }
+        );
       }
-    }
-    if (widget.content != oldWidget.content) {
-      _accumulatedContent = widget.content ?? '';
     }
   }
 
@@ -67,8 +104,10 @@ class _CodeBlockState extends State<CodeBlock> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final hasContent = _accumulatedContent.isNotEmpty;
 
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
@@ -81,21 +120,21 @@ class _CodeBlockState extends State<CodeBlock> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Code content
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SelectableText(
-                _accumulatedContent, // Display accumulated content
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 14,
-                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade900,
-                  height: 1.5,
-                ),
+            padding: const EdgeInsets.all(12),
+            child: SelectableText(
+              hasContent ? _accumulatedContent : ' ',
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 14,
+                color: isDark ? Colors.grey.shade300 : Colors.grey.shade900,
+                height: 1.5,
               ),
             ),
           ),
+
+          // Footer with language and copy button
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
@@ -111,30 +150,46 @@ class _CodeBlockState extends State<CodeBlock> {
                     ),
                   ),
                 const Spacer(),
-                IconButton(
-                  icon: Icon(
-                    Icons.copy_outlined,
-                    size: 18,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                if (_isLoading)
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                    ),
+                  )
+                else
+                  IconButton(
+                    icon: Icon(
+                      Icons.copy_outlined,
+                      size: 18,
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                    ),
+                    tooltip: 'Copy to clipboard',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: _accumulatedContent));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Code copied to clipboard'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
                   ),
-                  tooltip: 'Copy to clipboard',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: _accumulatedContent));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Code copied to clipboard'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                ),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _streamSubscription?.cancel();
+    super.dispose();
   }
 }

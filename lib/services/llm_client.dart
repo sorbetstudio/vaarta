@@ -9,6 +9,15 @@ final _logger = Logger('LLMClient');
 
 enum LLMProvider { openRouter, anthropic, mistral, gemini }
 
+class LLMMessage {
+  final String role;
+  final String content;
+
+  LLMMessage({required this.role, required this.content});
+
+  Map<String, dynamic> toJson() => {'role': role, 'content': content};
+}
+
 class OpenRouterConfig {
   final double? temperature;
   final int? maxTokens;
