@@ -2,7 +2,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:logging/logging.dart';
-import 'package:vaarta/models/models.dart';
 
 
 final _logger = Logger('LLMClient');
