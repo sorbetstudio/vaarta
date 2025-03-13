@@ -34,7 +34,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String _streamedResponse = "";
   bool _isScrolling = false;
   bool _isEditingMessages = false;
-  
+
   // Stream controller for RichMessageView
   late StreamController<String> _messageStreamController;
   StreamSubscription<String>? _streamSubscription;
@@ -51,7 +51,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final TextEditingController _systemPromptController = TextEditingController();
   final String defaultSystemPrompt =
-  '''You are Vaarta AI, a helpful assistant. Your responses should be concise, avoiding unnecessary details. Your personality is lovable, warm, and inviting.''';
+      '''You are Vaarta AI, a helpful assistant. Your responses should be concise, avoiding unnecessary details. Your personality is lovable, warm, and inviting.''';
 
   @override
   void initState() {
@@ -73,7 +73,10 @@ class _ChatScreenState extends State<ChatScreen> {
       _temperature = prefs.getDouble('temperature') ?? 0.7;
       _maxTokens = prefs.getInt('maxTokens') ?? 4096;
       _topP = prefs.getDouble('topP') ?? 0.9;
-      _systemPromptController.text = _systemPromptSetting.isNotEmpty ? _systemPromptSetting : defaultSystemPrompt;
+      _systemPromptController.text =
+          _systemPromptSetting.isNotEmpty
+              ? _systemPromptSetting
+              : defaultSystemPrompt;
     });
     _initializeLLMClient();
   }
@@ -165,7 +168,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _streamedResponse = "";
       _textController.clear();
     });
-    
+
     await dbHelper.insertMessage(userMessage);
     _snapToBottom();
 
@@ -173,54 +176,64 @@ class _ChatScreenState extends State<ChatScreen> {
       final messages = [
         LLMMessage(
           role: 'system',
-          content: _systemPromptSetting.isNotEmpty ? _systemPromptSetting : defaultSystemPrompt,
+          content:
+              _systemPromptSetting.isNotEmpty
+                  ? _systemPromptSetting
+                  : defaultSystemPrompt,
         ),
-        ..._messages.map((msg) => LLMMessage(role: msg.isUser ? 'user' : 'assistant', content: msg.content)),
+        ..._messages.map(
+          (msg) => LLMMessage(
+            role: msg.isUser ? 'user' : 'assistant',
+            content: msg.content,
+          ),
+        ),
       ];
 
-      _streamSubscription = _llmClient.streamCompletion(messages).listen(
+      _streamSubscription = _llmClient
+          .streamCompletion(messages)
+          .listen(
             (chunk) {
-          if (!mounted) return;
-          setState(() {
-            _streamedResponse += chunk;
-            if (_useHapticFeedback) HapticFeedback.lightImpact();
-            // Add the chunk to the stream controller
-            _messageStreamController.add(chunk);
-          });
-          _smoothScrollToBottom();
-        },
-        onDone: () {
-          final aiMessage = ChatMessage(
-            chatId: widget.chatId,
-            content: _streamedResponse,
-            isUser: false,
-            timestamp: DateTime.now(),
+              if (!mounted) return;
+              setState(() {
+                _streamedResponse += chunk;
+                if (_useHapticFeedback) HapticFeedback.lightImpact();
+                // Add the chunk to the stream controller
+                _messageStreamController.add(chunk);
+              });
+              _smoothScrollToBottom();
+            },
+            onDone: () {
+              final aiMessage = ChatMessage(
+                chatId: widget.chatId,
+                content: _streamedResponse,
+                isUser: false,
+                timestamp: DateTime.now(),
+              );
+              setState(() {
+                _messages.add(aiMessage);
+                _isGenerating = false;
+                _streamSubscription = null;
+              });
+              dbHelper.insertMessage(aiMessage);
+              _snapToBottom();
+            },
+            onError: (error) {
+              final errorMessage = ChatMessage(
+                chatId: widget.chatId,
+                content: 'Error: $error',
+                isUser: false,
+                timestamp: DateTime.now(),
+              );
+              setState(() {
+                _messages.add(errorMessage);
+                _isGenerating = false;
+                _streamSubscription = null;
+              });
+              dbHelper.insertMessage(errorMessage);
+              _snapToBottom();
+            },
+            cancelOnError: true,
           );
-          setState(() {
-            _messages.add(aiMessage);
-            _isGenerating = false;
-            _streamSubscription = null;
-          });
-          dbHelper.insertMessage(aiMessage);
-          _snapToBottom();
-        },
-        onError: (error) {
-          final errorMessage = ChatMessage(
-            chatId: widget.chatId,
-            content: 'Error: $error',
-            isUser: false,
-            timestamp: DateTime.now(),
-          );
-          setState(() {
-            _messages.add(errorMessage);
-            _isGenerating = false;
-            _streamSubscription = null;
-          });
-          dbHelper.insertMessage(errorMessage);
-          _snapToBottom();
-        },
-        cancelOnError: true,
-      );
     } catch (e) {
       final errorMessage = ChatMessage(
         chatId: widget.chatId,
@@ -241,7 +254,7 @@ class _ChatScreenState extends State<ChatScreen> {
   /// Stops the stream generation and saves the partial response.
   void _stopStream() {
     _streamSubscription?.cancel();
-    
+
     // Fixed: Save the partial response instead of discarding it
     if (_streamedResponse.isNotEmpty) {
       final aiMessage = ChatMessage(
@@ -250,13 +263,13 @@ class _ChatScreenState extends State<ChatScreen> {
         isUser: false,
         timestamp: DateTime.now(),
       );
-      
+
       setState(() {
         _messages.add(aiMessage);
         _isGenerating = false;
         _streamSubscription = null;
       });
-      
+
       dbHelper.insertMessage(aiMessage);
     } else {
       setState(() {
@@ -264,21 +277,25 @@ class _ChatScreenState extends State<ChatScreen> {
         _streamSubscription = null;
       });
     }
-    
+
     _snapToBottom();
   }
-
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: _buildAppBar(theme),
-      body: Column(
-        children: [
-          Expanded(child: _buildMessageListView(theme)),
-          _buildInputArea(theme),
-        ],
+      body: Center(
+        child: Container(
+          width: 752.0,
+          child: Column(
+            children: [
+              Expanded(child: _buildMessageListView(theme)),
+              _buildInputArea(theme),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -294,29 +311,35 @@ class _ChatScreenState extends State<ChatScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.3)
-                  : Colors.white.withValues(alpha: 0.3),
+              color:
+                  isDark
+                      ? Colors.black.withValues(alpha: 0.3)
+                      : Colors.white.withValues(alpha: 0.3),
               child: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 1,
                 title: const Text('Chat'),
                 leading: IconButton(
-                    icon: const Icon(Icons.chat_bubble_outline),
-                    onPressed: _openChatList
+                  icon: const Icon(Icons.chat_bubble_outline),
+                  onPressed: _openChatList,
                 ),
                 actions: [
                   IconButton(
-                      icon: const Icon(Icons.edit_note),
-                      onPressed: _editSystemPrompt
+                    icon: const Icon(Icons.edit_note),
+                    onPressed: _editSystemPrompt,
                   ),
                   IconButton(
-                    icon: Icon(_isEditingMessages ? Icons.visibility : Icons.edit),
-                    onPressed: () => setState(() => _isEditingMessages = !_isEditingMessages),
+                    icon: Icon(
+                      _isEditingMessages ? Icons.visibility : Icons.edit,
+                    ),
+                    onPressed:
+                        () => setState(
+                          () => _isEditingMessages = !_isEditingMessages,
+                        ),
                   ),
                   IconButton(
-                      icon: const Icon(Icons.settings),
-                      onPressed: _openSettings
+                    icon: const Icon(Icons.settings),
+                    onPressed: _openSettings,
                   ),
                 ],
               ),
@@ -331,27 +354,33 @@ class _ChatScreenState extends State<ChatScreen> {
   void _editSystemPrompt() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit System Prompt'),
-        content: TextField(
-          controller: _systemPromptController,
-          maxLines: null,
-          decoration: const InputDecoration(hintText: "Enter system prompt"),
-        ),
-        actions: [
-          TextButton(child: const Text('Cancel'), onPressed: () => Navigator.of(context).pop()),
-          TextButton(
-            child: const Text('Save'),
-            onPressed: () async {
-              final newPrompt = _systemPromptController.text;
-              setState(() => _systemPromptSetting = newPrompt);
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setString('systemPrompt', newPrompt);
-              Navigator.of(context).pop();
-            },
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Edit System Prompt'),
+            content: TextField(
+              controller: _systemPromptController,
+              maxLines: null,
+              decoration: const InputDecoration(
+                hintText: "Enter system prompt",
+              ),
+            ),
+            actions: [
+              TextButton(
+                child: const Text('Cancel'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              TextButton(
+                child: const Text('Save'),
+                onPressed: () async {
+                  final newPrompt = _systemPromptController.text;
+                  setState(() => _systemPromptSetting = newPrompt);
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('systemPrompt', newPrompt);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -367,14 +396,17 @@ class _ChatScreenState extends State<ChatScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _streamedResponse.isEmpty
-                  ? Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ProcessingAnimation(color: theme.colorScheme.primary),
-              )
-                  : AssistantMessage(
-                      messageStream: _messageStreamController.stream,
-                    ),
+              child:
+                  _streamedResponse.isEmpty
+                      ? Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: ProcessingAnimation(
+                          color: theme.colorScheme.primary,
+                        ),
+                      )
+                      : AssistantMessage(
+                        messageStream: _messageStreamController.stream,
+                      ),
             ),
           );
         }
@@ -396,10 +428,13 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Align(
         alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
-          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
-          child: isUserMessage 
-              ? _buildUserMessage(message, theme) 
-              : _buildAssistantMessage(message, theme),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.85,
+          ),
+          child:
+              isUserMessage
+                  ? _buildUserMessage(message, theme)
+                  : _buildAssistantMessage(message, theme),
         ),
       ),
     );
@@ -410,43 +445,54 @@ class _ChatScreenState extends State<ChatScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final messageController = TextEditingController(text: message.content);
     return Container(
-      decoration: BoxDecoration(color: theme.colorScheme.primary, borderRadius: BorderRadius.circular(16)),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: _isEditingMessages
-          ? TextFormField(
-        controller: messageController,
-        style: const TextStyle(color: Colors.white, fontSize: 16),
-        decoration: InputDecoration.collapsed(
-          hintText: "Enter message",
-          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-        ),
-        onChanged: (value) {
-          final index = _messages.indexWhere((m) => m.timestamp == message.timestamp);
-          if (index != -1) {
-            _messages[index] = message.copyWith(content: value);
-            dbHelper.updateMessage(message.copyWith(content: value));
-          }
-        },
-        maxLines: null,
-      )
-          : MarkdownBody(
-        data: message.content,
-        styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-          p: const TextStyle(color: Colors.white, fontSize: 16),
-          code: TextStyle(
-            backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-            color: theme.colorScheme.onSurface,
-            fontFamily: 'monospace',
-          ),
-          codeblockDecoration: BoxDecoration(
-            color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          blockquoteDecoration: BoxDecoration(
-            border: Border(left: BorderSide(color: theme.dividerColor, width: 4)),
-          ),
-        ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(16),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child:
+          _isEditingMessages
+              ? TextFormField(
+                controller: messageController,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+                decoration: InputDecoration.collapsed(
+                  hintText: "Enter message",
+                  hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                ),
+                onChanged: (value) {
+                  final index = _messages.indexWhere(
+                    (m) => m.timestamp == message.timestamp,
+                  );
+                  if (index != -1) {
+                    _messages[index] = message.copyWith(content: value);
+                    dbHelper.updateMessage(message.copyWith(content: value));
+                  }
+                },
+                maxLines: null,
+              )
+              : MarkdownBody(
+                data: message.content,
+                styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+                  p: const TextStyle(color: Colors.white, fontSize: 16),
+                  code: TextStyle(
+                    backgroundColor:
+                        isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                    color: theme.colorScheme.onSurface,
+                    fontFamily: 'monospace',
+                  ),
+                  codeblockDecoration: BoxDecoration(
+                    color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  blockquoteDecoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(color: theme.dividerColor, width: 4),
+                    ),
+                  ),
+                ),
+              ),
     );
   }
 
@@ -454,61 +500,77 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildAssistantMessage(ChatMessage message, ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
     final messageController = TextEditingController(text: message.content);
-    
+
     return Container(
-      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
-      child: _isEditingMessages
-          ? Container(
-              decoration: BoxDecoration(
-                color: isDark ? theme.colorScheme.surface : theme.colorScheme.surface.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: TextFormField(
-                controller: messageController,
-                style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontSize: 16),
-                decoration: InputDecoration.collapsed(
-                  hintText: "Enter message",
-                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+      // constraints: BoxConstraints(maxWidth:MediaQuery.of(context).size.width * 1),
+      child:
+          _isEditingMessages
+              ? Container(
+                decoration: BoxDecoration(
+                  color:
+                      isDark
+                          ? theme.colorScheme.surface
+                          : theme.colorScheme.surface.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                onChanged: (value) {
-                  final index = _messages.indexWhere((m) => m.timestamp == message.timestamp);
-                  if (index != -1) {
-                    _messages[index] = message.copyWith(content: value);
-                    dbHelper.updateMessage(message.copyWith(content: value));
-                  }
-                },
-                maxLines: null,
-              ),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AssistantMessage(
-                  content: message.content,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Regenerate Button
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      color: theme.colorScheme.primary,
-                      tooltip: 'Regenerate',
-                      onPressed: _isGenerating ? null : () => _regenerateMessage(message),
+                child: TextFormField(
+                  controller: messageController,
+                  style: TextStyle(
+                    color: theme.textTheme.bodyLarge?.color,
+                    fontSize: 16,
+                  ),
+                  decoration: InputDecoration.collapsed(
+                    hintText: "Enter message",
+                    hintStyle: TextStyle(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
-                    // Copy Button
-                    IconButton(
-                      icon: const Icon(Icons.copy),
-                      color: theme.colorScheme.primary,
-                      tooltip: 'Copy',
-                      onPressed: () => _copyMessageToClipboard(message.content),
-                    ),
-                  ],
+                  ),
+                  onChanged: (value) {
+                    final index = _messages.indexWhere(
+                      (m) => m.timestamp == message.timestamp,
+                    );
+                    if (index != -1) {
+                      _messages[index] = message.copyWith(content: value);
+                      dbHelper.updateMessage(message.copyWith(content: value));
+                    }
+                  },
+                  maxLines: null,
                 ),
-              ],
-            ),
+              )
+              : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AssistantMessage(content: message.content),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Regenerate Button
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        color: theme.colorScheme.primary,
+                        tooltip: 'Regenerate',
+                        onPressed:
+                            _isGenerating
+                                ? null
+                                : () => _regenerateMessage(message),
+                      ),
+                      // Copy Button
+                      IconButton(
+                        icon: const Icon(Icons.copy),
+                        color: theme.colorScheme.primary,
+                        tooltip: 'Copy',
+                        onPressed:
+                            () => _copyMessageToClipboard(message.content),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
     );
   }
 
@@ -528,12 +590,13 @@ class _ChatScreenState extends State<ChatScreen> {
     // Find the last user message before this AI message
     final lastUserMessage = _messages.lastWhere(
       (msg) => msg.isUser,
-      orElse: () => ChatMessage(
-        chatId: widget.chatId,
-        content: '',
-        isUser: true,
-        timestamp: DateTime.now(),
-      ),
+      orElse:
+          () => ChatMessage(
+            chatId: widget.chatId,
+            content: '',
+            isUser: true,
+            timestamp: DateTime.now(),
+          ),
     );
 
     // If there's no previous user message, do nothing
@@ -541,7 +604,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // Remove the last AI message (the one being regenerated)
     setState(() {
-      _messages.removeWhere((msg) => msg.timestamp == originalMessage.timestamp);
+      _messages.removeWhere(
+        (msg) => msg.timestamp == originalMessage.timestamp,
+      );
     });
 
     // Send the last user message again to regenerate the response
@@ -553,9 +618,17 @@ class _ChatScreenState extends State<ChatScreen> {
     final isDark = theme.brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(8.0),
+      margin: EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: isDark ? Colors.black : theme.colorScheme.surface,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: const Offset(0, -2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+        borderRadius: BorderRadius.all(Radius.circular(25)),
       ),
       child: SafeArea(
         child: Row(
@@ -566,12 +639,16 @@ class _ChatScreenState extends State<ChatScreen> {
                 decoration: InputDecoration(
                   hintText: 'Type your message...',
                   filled: true,
-                  fillColor: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                  fillColor:
+                      isDark ? Colors.grey.shade900 : Colors.grey.shade100,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
                 onSubmitted: _isGenerating ? null : _sendMessage,
                 enabled: !_isGenerating,
@@ -582,9 +659,15 @@ class _ChatScreenState extends State<ChatScreen> {
             const SizedBox(width: 8),
             FloatingActionButton(
               mini: true,
-              onPressed: _isGenerating ? _stopStream : () => _sendMessage(_textController.text),
+              onPressed:
+                  _isGenerating
+                      ? _stopStream
+                      : () => _sendMessage(_textController.text),
               backgroundColor: theme.colorScheme.primary,
-              child: Icon(_isGenerating ? Icons.stop : Icons.send, color: theme.colorScheme.onPrimary),
+              child: Icon(
+                _isGenerating ? Icons.stop : Icons.send,
+                color: theme.colorScheme.onPrimary,
+              ),
             ),
           ],
         ),
