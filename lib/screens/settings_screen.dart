@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vaarta/providers/theme_notifier.dart';
-import '../main.dart';
 import '../services/database_helper.dart';
 import 'package:vaarta/widgets/sk_ui.dart'; // Import reusable widgets
 
