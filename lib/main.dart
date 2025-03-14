@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vaarta/providers/theme_notifier.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
@@ -9,61 +11,44 @@ import 'services/database_helper.dart';
 import 'screens/chat_screen.dart';
 
 // Main entry point of the application
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+  ));
   // Set up the app with Provider for state management
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => AppState(),
-      child: const MyApp(),
-    ),
+    ProviderScope(child: const MyApp(),),
   );
   // Prevent the screen from sleeping during app usage
   WakelockPlus.enable();
 }
 
 // Manages the app's theme state using Provider
-class AppState with ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.system; // Default to system theme
-
-  ThemeMode get themeMode => _themeMode;
-
-  // Loads the saved theme preference from SharedPreferences
-  Future<void> initializeTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isDarkMode = prefs.getBool('darkMode') ?? false;
-    _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
-    notifyListeners();
-  }
-
-  // Switches between light and dark themes
-  void toggleTheme() {
-    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-    notifyListeners();
-  }
-}
 
 // Root widget of the Vaarta application
-class MyApp extends StatefulWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  ConsumerState<ConsumerStatefulWidget> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    // Initialize theme settings on app startup
-    Provider.of<AppState>(context, listen: false).initializeTheme();
   }
 
   @override
   Widget build(BuildContext context) {
+
+    // final themeMode = ref.watch(themeNotifierProvider);
+
     return MaterialApp(
       title: 'Vaarta',
       debugShowCheckedModeBanner: false,
-      themeMode: Provider.of<AppState>(context).themeMode,
+      themeMode: ref.watch(themeNotifierProvider),
       theme: _lightTheme(),
       darkTheme: _darkTheme(),
       home: FutureBuilder<String>(

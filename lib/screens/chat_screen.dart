@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui';
 import '../services/database_helper.dart';
@@ -14,16 +15,16 @@ import 'package:vaarta/utils/utils.dart';
 import 'package:vaarta/models/models.dart';
 
 /// Displays a chat interface for sending and receiving messages with an AI.
-class ChatScreen extends StatefulWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   final String chatId;
 
   const ChatScreen({super.key, required this.chatId});
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final dbHelper = DatabaseHelper.instance;
@@ -289,6 +290,7 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Center(
         child: Container(
           width: 752.0,
+          padding: EdgeInsets.all(12.0),
           child: Column(
             children: [
               Expanded(child: _buildMessageListView(theme)),
@@ -388,12 +390,12 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildMessageListView(ThemeData theme) {
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(8.0),
+      // padding: const EdgeInsets.all(12.0),
       itemCount: _messages.length + (_isGenerating ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == _messages.length && _isGenerating) {
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: const EdgeInsets.symmetric(vertical: 12.0),
             child: Align(
               alignment: Alignment.centerLeft,
               child:
@@ -449,7 +451,7 @@ class _ChatScreenState extends State<ChatScreen> {
         color: theme.colorScheme.primary,
         borderRadius: BorderRadius.circular(16),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child:
           _isEditingMessages
               ? TextFormField(
@@ -513,10 +515,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           : theme.colorScheme.surface.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                // padding: const EdgeInsets.symmetric(
+                //   horizontal: 16,
+                //   vertical: 12,
+                // ),
                 child: TextFormField(
                   controller: messageController,
                   style: TextStyle(
@@ -624,53 +626,51 @@ class _ChatScreenState extends State<ChatScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black12,
-            blurRadius: 8,
+            blurRadius: 10,
             offset: const Offset(0, -2),
           ),
         ],
         borderRadius: BorderRadius.all(Radius.circular(25)),
       ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _textController,
-                decoration: InputDecoration(
-                  hintText: 'Type your message...',
-                  filled: true,
-                  fillColor:
-                      isDark ? Colors.grey.shade900 : Colors.grey.shade100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _textController,
+              decoration: InputDecoration(
+                hintText: 'Type your message...',
+                filled: true,
+                fillColor:
+                    isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
                 ),
-                onSubmitted: _isGenerating ? null : _sendMessage,
-                enabled: !_isGenerating,
-                maxLines: null,
-                textInputAction: TextInputAction.send,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
+              onSubmitted: _isGenerating ? null : _sendMessage,
+              enabled: !_isGenerating,
+              maxLines: null,
+              textInputAction: TextInputAction.send,
             ),
-            const SizedBox(width: 8),
-            FloatingActionButton(
-              mini: true,
-              onPressed:
-                  _isGenerating
-                      ? _stopStream
-                      : () => _sendMessage(_textController.text),
-              backgroundColor: theme.colorScheme.primary,
-              child: Icon(
-                _isGenerating ? Icons.stop : Icons.send,
-                color: theme.colorScheme.onPrimary,
-              ),
+          ),
+          const SizedBox(width: 8),
+          FloatingActionButton(
+            mini: true,
+            onPressed:
+                _isGenerating
+                    ? _stopStream
+                    : () => _sendMessage(_textController.text),
+            backgroundColor: theme.colorScheme.primary,
+            child: Icon(
+              _isGenerating ? Icons.stop : Icons.send,
+              color: theme.colorScheme.onPrimary,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vaarta/providers/theme_notifier.dart';
 import '../main.dart';
 import '../services/database_helper.dart';
 import 'package:vaarta/widgets/sk_ui.dart'; // Import reusable widgets
 
 /// Displays a settings screen for configuring app preferences.
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProviderStateMixin {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _animation;
   bool _darkMode = true;
@@ -180,7 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             value: _darkMode,
             onChanged: (value) async {
               setState(() => _darkMode = value);
-              Provider.of<AppState>(context, listen: false).toggleTheme();
+              ref.read(themeNotifierProvider.notifier).toggleTheme();
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool('darkMode', _darkMode);
             },
