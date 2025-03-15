@@ -1,3 +1,5 @@
+// lib/providers/messages_notifier.dart
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:vaarta/models/models.dart'; // Make sure this import is correct
 
@@ -17,11 +19,17 @@ class MessagesNotifier extends _$MessagesNotifier {
   void updateMessage(ChatMessage updatedMessage) {
     state = [
       for (final message in state)
-        if (message.timestamp == updatedMessage.timestamp) updatedMessage else message,
+        if (message.timestamp == updatedMessage.timestamp)
+          updatedMessage
+        else
+          message,
     ];
   }
 
   void removeMessage(ChatMessage messageToRemove) {
-    state = state.where((message) => message.timestamp != messageToRemove.timestamp).toList();
+    state =
+        state
+            .where((message) => message.timestamp != messageToRemove.timestamp)
+            .toList();
   }
 }
