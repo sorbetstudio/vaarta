@@ -111,5 +111,7 @@ This project is licensed under the GPLv3 License - see the [LICENSE](LICENSE) fi
 ## Reach out:
 
 Telegram Group: (under works)
+
 Email: [hi@sorbet.studio](hi@sorbet.studio)
+
 Project Link: [https://github.com/sorbetstudio/vaarta](https://github.com/sorbetstudio/vaarta)
