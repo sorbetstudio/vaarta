@@ -26,6 +26,15 @@ Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This pr
 - ⚡ High Performance
 - 📱 Cross-Platform, by Default
 
+## Finished
+- [x] Add copy and regenerate buttons
+- [x] Add chunk based text streaming
+- [x] Add a settings screen
+  - [x] Adding a custom system prompt
+  - [x] Custom params (temp, max tokens, etc)
+- [x] Implement sqflite
+- [x] Implement an LLM Helper to avoid stale AI pub.dev packages
+
 ## Todo
 
 - [ ] Implement better theming
@@ -54,15 +63,6 @@ Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This pr
   - [ ] LM Studio
   - [ ] Deepseek
   - [ ] Pollinations
-
-## Finished
-- [x] Add copy and regenerate buttons
-- [x] Add chunk based text streaming
-- [x] Add a settings screen
-  - [x] Adding a custom system prompt
-  - [x] Custom params (temp, max tokens, etc)
-- [x] Implement sqflite
-- [x] Implement an LLM Helper to avoid stale AI pub.dev packages
 
 ## 🚀 Building Locally / Development
 
