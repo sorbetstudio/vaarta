@@ -1,11 +1,115 @@
-# vaarta
+# Vaarta
 
-A Beautiful FOSS ai Interface, focused on utility and deep integration.
+<div align="center">
 
-Vaarta means a Story / a conversation in Gujarati. But it sounds dope in English, so hence the name.
+![Vaarta Logo](assets/logo.png)
 
-## Getting Started with coding
+[![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white)](https://flutter.dev)
+[![License](https://img.shields.io/github/license/sorbetstudio/vaarta?style=for-the-badge)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/sorbetstudio/vaarta?style=for-the-badge)](https://github.com/sorbetstudio/vaarta/stargazers)
 
-I used roo code to transform my local repo to this repo and polish it up. Check out the designer .roomodes file .. it's really cool, it came up with it itself. 
+A beautiful, open-source AI interface built with Flutter, focusing on utility and deep integration.
 
-Feel free to use Roo or Cline to help extend this repo.
+[Home Page (not up yet haha)](https://vaarta.sorbet.studio) | [Documentation](docs/README.md) | [Contributing](CONTRIBUTING.md)
+
+</div>
+
+## 📖 About
+
+Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This project aims to create an intuitive and powerful interface for AI interactions.
+
+## 🌟 Features
+
+- 🤖 Advanced AI Integration
+- 🎨 Beautiful, Modern UI
+- 🔒 Privacy-Focused
+- ⚡ High Performance
+- 📱 Cross-Platform, by Default
+
+## Todo
+
+- [ ] Implement better theming
+  - [ ] Research and Improve the color scheme
+  - [ ] Improve the performance of theme switching toggle
+  - [ ] Create a custom mode based on a yaml file that users can edit and backup for theming.
+- [ ] Migrate to riverpod completely for state-management
+- [ ] Improve the implementation of settings screen
+- [ ] Fix the regenerate and copy button design and logic
+- [ ] Improve the input widget
+  - [ ] Decide on the design
+  - [ ] Add the Modality button
+- [ ] Modalities:
+  - [ ] Add support for image input
+  - [ ] Add support for text file attachments text files
+  - [ ] Add native audio input for supported models
+  - [ ] Add native video input for supported models
+- [ ] Realtime Audio (for Gemini and OpenAI)
+- [ ] Tool Calling Implementation
+- [ ] Provider Support
+  - [ ] Gemini
+  - [x] OpenRouter
+  - [ ] Claude
+  - [ ] OpenAI
+  - [ ] Ollama
+  - [ ] LM Studio
+  - [ ] Deepseek
+  - [ ] Pollinations
+
+## Finished
+- [x] Add copy and regenerate buttons
+- [x] Add chunk based text streaming
+- [x] Add a settings screen
+  - [x] Adding a custom system prompt
+  - [x] Custom params (temp, max tokens, etc)
+- [x] Implement sqflite
+- [x] Implement an LLM Helper to avoid stale AI pub.dev packages
+
+## 🚀 Building Locally / Development
+
+### Prerequisites
+
+- Flutter (latest version)
+- Dart SDK
+- Android Studio / VS Code
+- Git
+
+### Installation
+
+1. Clone the repository
+
+```bash
+git clone https://github.com/sorbetstudio/vaarta.git
+```
+
+2. Navigate to the project directory
+
+```bash
+cd vaarta
+```
+
+3. Install dependencies
+
+```bash
+flutter pub get
+```
+
+4. Run the app
+
+```bash
+dart run build_runner build
+flutter run
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting a Pull Request.
+
+## 📄 License
+
+This project is licensed under the GPLv3 License - see the [LICENSE](LICENSE) file for details.
+
+## Reach out:
+
+Telegram Group: (under works)
+Email: [hi@sorbet.studio](hi@sorbet.studio)
+Project Link: [https://github.com/sorbetstudio/vaarta](https://github.com/sorbetstudio/vaarta)
