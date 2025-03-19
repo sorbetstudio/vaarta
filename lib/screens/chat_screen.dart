@@ -283,7 +283,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final messages = ref.watch(messagesNotifierProvider(widget.chatId)); // Get messages from provider
+    final messages = ref.watch(messagesNotifierProvider(widget.chatId));
 
     return Scaffold(
       appBar: _buildAppBar(theme),
@@ -299,6 +299,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
         ),
       ),
+      resizeToAvoidBottomInset: true,
     );
   }
 
