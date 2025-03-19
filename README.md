@@ -38,6 +38,7 @@ Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This pr
 ## Todo
 
 - [ ] Implement better theming
+  - [ ] Get app_theme.dart to integrate correctly
   - [ ] Research and Improve the color scheme
   - [ ] Improve the performance of theme switching toggle
   - [ ] Create a custom mode based on a yaml file that users can edit and backup for theming.
