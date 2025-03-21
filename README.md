@@ -27,6 +27,7 @@ Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This pr
 - 📱 Cross-Platform, by Default
 
 ## Finished
+
 - [x] Add copy and regenerate buttons
 - [x] Add chunk based text streaming
 - [x] Add a settings screen
@@ -37,6 +38,9 @@ Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This pr
 
 ## Todo
 
+- [ ] Issue: Creates a new screen on clicking new message (potentially bloating memory)
+- [ ] Feature: Auto-Rename Chats in Chat History
+- [ ] SQUIRCLES! <- figma_squircle: ^0.6.3
 - [ ] Implement better theming
   - [ ] Get app_theme.dart to integrate correctly
   - [ ] Research and Improve the color scheme
