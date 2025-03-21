@@ -161,7 +161,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     await _messageStreamController.close();
     _messageStreamController = StreamController<String>.broadcast();
 
-    ref.read(messagesNotifierProvider(widget.chatId).notifier).addMessage(userMessage);
+    ref
+        .read(messagesNotifierProvider(widget.chatId).notifier)
+        .addMessage(userMessage);
 
     setState(() {
       _isGenerating = true;
@@ -181,58 +183,67 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ? _systemPromptSetting
                   : defaultSystemPrompt,
         ),
-        ...ref.watch(messagesNotifierProvider(widget.chatId)).map((msg) => LLMMessage(
-            role: msg.isUser ? 'user' : 'assistant',
-            content: msg.content,
-          ),
-        ),
+        ...ref
+            .watch(messagesNotifierProvider(widget.chatId))
+            .map(
+              (msg) => LLMMessage(
+                role: msg.isUser ? 'user' : 'assistant',
+                content: msg.content,
+              ),
+            ),
       ];
 
-      _streamSubscription = _llmClient.streamCompletion(messages).listen(
+      _streamSubscription = _llmClient
+          .streamCompletion(messages)
+          .listen(
             (chunk) {
-          if (!mounted) return;
-          setState(() {
-            _streamedResponse += chunk;
-            if (_useHapticFeedback) HapticFeedback.lightImpact();
-            // Add the chunk to the stream controller
-            _messageStreamController.add(chunk);
-          });
-          _smoothScrollToBottom();
-        },
-        onDone: () {
-          final aiMessage = ChatMessage(
-            chatId: widget.chatId,
-            content: _streamedResponse,
-            isUser: false,
-            timestamp: DateTime.now(),
-          );
-          ref.read(messagesNotifierProvider(widget.chatId).notifier).addMessage(aiMessage);
+              if (!mounted) return;
+              setState(() {
+                _streamedResponse += chunk;
+                if (_useHapticFeedback) HapticFeedback.lightImpact();
+                // Add the chunk to the stream controller
+                _messageStreamController.add(chunk);
+              });
+              _smoothScrollToBottom();
+            },
+            onDone: () {
+              final aiMessage = ChatMessage(
+                chatId: widget.chatId,
+                content: _streamedResponse,
+                isUser: false,
+                timestamp: DateTime.now(),
+              );
+              ref
+                  .read(messagesNotifierProvider(widget.chatId).notifier)
+                  .addMessage(aiMessage);
 
-          setState(() {
-            _isGenerating = false;
-            _streamSubscription = null;
-          });
-          dbHelper.insertMessage(aiMessage);
-          _snapToBottom();
-        },
-        onError: (error) {
-          final errorMessage = ChatMessage(
-            chatId: widget.chatId,
-            content: 'Error: $error',
-            isUser: false,
-            timestamp: DateTime.now(),
+              setState(() {
+                _isGenerating = false;
+                _streamSubscription = null;
+              });
+              dbHelper.insertMessage(aiMessage);
+              _snapToBottom();
+            },
+            onError: (error) {
+              final errorMessage = ChatMessage(
+                chatId: widget.chatId,
+                content: 'Error: $error',
+                isUser: false,
+                timestamp: DateTime.now(),
+              );
+              ref
+                  .read(messagesNotifierProvider(widget.chatId).notifier)
+                  .addMessage(errorMessage);
+              setState(() {
+                //_messages.add(errorMessage); // REMOVE THIS
+                _isGenerating = false;
+                _streamSubscription = null;
+              });
+              dbHelper.insertMessage(errorMessage);
+              _snapToBottom();
+            },
+            cancelOnError: true,
           );
-          ref.read(messagesNotifierProvider(widget.chatId).notifier).addMessage(errorMessage);
-          setState(() {
-            //_messages.add(errorMessage); // REMOVE THIS
-            _isGenerating = false;
-            _streamSubscription = null;
-          });
-          dbHelper.insertMessage(errorMessage);
-          _snapToBottom();
-        },
-        cancelOnError: true,
-      );
     } catch (e) {
       final errorMessage = ChatMessage(
         chatId: widget.chatId,
@@ -240,7 +251,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         isUser: false,
         timestamp: DateTime.now(),
       );
-      ref.read(messagesNotifierProvider(widget.chatId).notifier).addMessage(errorMessage);
+      ref
+          .read(messagesNotifierProvider(widget.chatId).notifier)
+          .addMessage(errorMessage);
       setState(() {
         _isGenerating = false;
         _streamSubscription = null;
@@ -262,7 +275,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         isUser: false,
         timestamp: DateTime.now(),
       );
-      ref.read(messagesNotifierProvider(widget.chatId).notifier).addMessage(aiMessage);
+      ref
+          .read(messagesNotifierProvider(widget.chatId).notifier)
+          .addMessage(aiMessage);
 
       setState(() {
         _isGenerating = false;
@@ -290,10 +305,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body: Center(
         child: Container(
           width: 752.0,
-          padding: EdgeInsets.all(12.0),
+          padding: const EdgeInsets.symmetric(vertical: 0.0, horizontal: 12.0),
           child: Column(
             children: [
-              Expanded(child: _buildMessageListView(theme, messages)), // Pass messages
+              Expanded(
+                child: _buildMessageListView(theme, messages),
+              ), // Pass messages
               _buildInputArea(theme),
             ],
           ),
@@ -314,7 +331,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
-              color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.3),
+              color:
+                  isDark
+                      ? Colors.black.withValues(alpha: 0.3)
+                      : Colors.white.withValues(alpha: 0.3),
               child: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 1,
@@ -332,7 +352,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     icon: Icon(
                       _isEditingMessages ? Icons.visibility : Icons.edit,
                     ),
-                    onPressed: () => setState(() => _isEditingMessages = !_isEditingMessages),
+                    onPressed:
+                        () => setState(
+                          () => _isEditingMessages = !_isEditingMessages,
+                        ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.settings),
@@ -351,8 +374,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _editSystemPrompt() {
     showDialog(
       context: context,
-      builder: (context) =>
-          AlertDialog(
+      builder:
+          (context) => AlertDialog(
             title: const Text('Edit System Prompt'),
             content: TextField(
               controller: _systemPromptController,
@@ -393,16 +416,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             padding: const EdgeInsets.symmetric(vertical: 12.0),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _streamedResponse.isEmpty
-                  ? Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ProcessingAnimation(
-                  color: theme.colorScheme.primary,
-                ),
-              )
-                  : AssistantMessage(
-                messageStream: _messageStreamController.stream,
-              ),
+              child:
+                  _streamedResponse.isEmpty
+                      ? Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: ProcessingAnimation(
+                          color: theme.colorScheme.primary,
+                        ),
+                      )
+                      : AssistantMessage(
+                        messageStream: _messageStreamController.stream,
+                      ),
             ),
           );
         }
@@ -427,7 +451,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           // constraints: BoxConstraints(
           //   maxWidth: MediaQuery.of(context).size.width * 0.85,
           // ),
-          child: isUserMessage ? _buildUserMessage(message, theme) : _buildAssistantMessage(message, theme),
+          child:
+              isUserMessage
+                  ? _buildUserMessage(message, theme)
+                  : _buildAssistantMessage(message, theme),
         ),
       ),
     );
@@ -443,48 +470,52 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      child: _isEditingMessages
-          ? TextFormField(
-        controller: messageController,
-        style: const TextStyle(color: Colors.white, fontSize: 16),
-        decoration: InputDecoration.collapsed(
-          hintText: "Enter message",
-          hintStyle: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
-          ),
-        ),
-        onChanged: (value) {
-          final index = ref.watch(messagesNotifierProvider(widget.chatId)).indexWhere(
-                (m) => m.timestamp == message.timestamp,
-          );
-          if (index != -1) {
-            final updatedMessage = message.copyWith(content: value);
-            ref.read(messagesNotifierProvider(widget.chatId).notifier).updateMessage(updatedMessage);
-            dbHelper.updateMessage(updatedMessage);
-          }
-        },
-        maxLines: null,
-      )
-          : MarkdownBody(
-        data: message.content,
-        styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-          p: const TextStyle(color: Colors.white, fontSize: 16),
-          code: TextStyle(
-            backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-            color: theme.colorScheme.onSurface,
-            fontFamily: 'monospace',
-          ),
-          codeblockDecoration: BoxDecoration(
-            color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          blockquoteDecoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(color: theme.dividerColor, width: 4),
-            ),
-          ),
-        ),
-      ),
+      child:
+          _isEditingMessages
+              ? TextFormField(
+                controller: messageController,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+                decoration: InputDecoration.collapsed(
+                  hintText: "Enter message",
+                  hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                ),
+                onChanged: (value) {
+                  final index = ref
+                      .watch(messagesNotifierProvider(widget.chatId))
+                      .indexWhere((m) => m.timestamp == message.timestamp);
+                  if (index != -1) {
+                    final updatedMessage = message.copyWith(content: value);
+                    ref
+                        .read(messagesNotifierProvider(widget.chatId).notifier)
+                        .updateMessage(updatedMessage);
+                    dbHelper.updateMessage(updatedMessage);
+                  }
+                },
+                maxLines: null,
+              )
+              : MarkdownBody(
+                data: message.content,
+                styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+                  p: const TextStyle(color: Colors.white, fontSize: 16),
+                  code: TextStyle(
+                    backgroundColor:
+                        isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                    color: theme.colorScheme.onSurface,
+                    fontFamily: 'monospace',
+                  ),
+                  codeblockDecoration: BoxDecoration(
+                    color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  blockquoteDecoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(color: theme.dividerColor, width: 4),
+                    ),
+                  ),
+                ),
+              ),
     );
   }
 
@@ -495,67 +526,81 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     return Container(
       // constraints: BoxConstraints(maxWidth:MediaQuery.of(context).size.width * 1),
-      child: _isEditingMessages
-          ? Container(
-        decoration: BoxDecoration(
-          color: isDark ? theme.colorScheme.surface : theme.colorScheme.surface.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        // padding: const EdgeInsets.symmetric(
-        //   horizontal: 16,
-        //   vertical: 12,
-        // ),
-        child: TextFormField(
-          controller: messageController,
-          style: TextStyle(
-            color: theme.textTheme.bodyLarge?.color,
-            fontSize: 16,
-          ),
-          decoration: InputDecoration.collapsed(
-            hintText: "Enter message",
-            hintStyle: TextStyle(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          onChanged: (value) {
-            final index = ref.watch(messagesNotifierProvider(widget.chatId)).indexWhere(
-                  (m) => m.timestamp == message.timestamp,
-            );
-            if (index != -1) {
-              final updatedMessage = message.copyWith(content: value);
-              ref.read(messagesNotifierProvider(widget.chatId).notifier).updateMessage(updatedMessage); // Update using provider
-              dbHelper.updateMessage(updatedMessage);
-            }
-          },
-          maxLines: null,
-        ),
-      )
-          : Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AssistantMessage(content: message.content),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Regenerate Button
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                color: theme.colorScheme.primary,
-                tooltip: 'Regenerate',
-                onPressed: _isGenerating ? null : () => _regenerateMessage(message),
+      child:
+          _isEditingMessages
+              ? Container(
+                decoration: BoxDecoration(
+                  color:
+                      isDark
+                          ? theme.colorScheme.surface
+                          : theme.colorScheme.surface.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: TextFormField(
+                  controller: messageController,
+                  style: TextStyle(
+                    color: theme.textTheme.bodyLarge?.color,
+                    fontSize: 16,
+                  ),
+                  decoration: InputDecoration.collapsed(
+                    hintText: "Enter message",
+                    hintStyle: TextStyle(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  onChanged: (value) {
+                    final index = ref
+                        .watch(messagesNotifierProvider(widget.chatId))
+                        .indexWhere((m) => m.timestamp == message.timestamp);
+                    if (index != -1) {
+                      final updatedMessage = message.copyWith(content: value);
+                      ref
+                          .read(
+                            messagesNotifierProvider(widget.chatId).notifier,
+                          )
+                          .updateMessage(
+                            updatedMessage,
+                          ); // Update using provider
+                      dbHelper.updateMessage(updatedMessage);
+                    }
+                  },
+                  maxLines: null,
+                ),
+              )
+              : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AssistantMessage(content: message.content),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Regenerate Button
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        color: theme.colorScheme.primary,
+                        tooltip: 'Regenerate',
+                        onPressed:
+                            _isGenerating
+                                ? null
+                                : () => _regenerateMessage(message),
+                      ),
+                      // Copy Button
+                      IconButton(
+                        icon: const Icon(Icons.copy),
+                        color: theme.colorScheme.primary,
+                        tooltip: 'Copy',
+                        onPressed:
+                            () => _copyMessageToClipboard(message.content),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              // Copy Button
-              IconButton(
-                icon: const Icon(Icons.copy),
-                color: theme.colorScheme.primary,
-                tooltip: 'Copy',
-                onPressed: () => _copyMessageToClipboard(message.content),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -573,20 +618,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// Regenerates a specific AI message by re-sending the last user message.
   void _regenerateMessage(ChatMessage originalMessage) {
     // Find the last user message before this AI message
-    final lastUserMessageIndex = ref.watch(messagesNotifierProvider(widget.chatId)).lastIndexWhere(
-          (msg) => msg.isUser,
-    );
+    final lastUserMessageIndex = ref
+        .watch(messagesNotifierProvider(widget.chatId))
+        .lastIndexWhere((msg) => msg.isUser);
 
     // If there's no previous user message, do nothing
     if (lastUserMessageIndex == -1) return;
 
-    final lastUserMessage = ref.watch(messagesNotifierProvider(widget.chatId))[lastUserMessageIndex];
-
+    final lastUserMessage =
+        ref.watch(
+          messagesNotifierProvider(widget.chatId),
+        )[lastUserMessageIndex];
 
     // Remove the last AI message (the one being regenerated)
     // You'll need a removeMessage method in your Notifier
-    ref.read(messagesNotifierProvider(widget.chatId).notifier).removeMessage(originalMessage);
-
+    ref
+        .read(messagesNotifierProvider(widget.chatId).notifier)
+        .removeMessage(originalMessage);
 
     // Send the last user message again to regenerate the response
     _sendMessage(lastUserMessage.content);
@@ -596,58 +644,291 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget _buildInputArea(ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(8.0),
-      margin: EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16.0),
+      // margin: EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: isDark ? Colors.black : theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black12,
+            color: isDark ? Colors.white10 : Colors.black12,
             blurRadius: 10,
-            offset: const Offset(0, -2),
+            offset: const Offset(0, -1),
           ),
         ],
-        borderRadius: BorderRadius.all(Radius.circular(25)),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(25),
+          topRight: Radius.circular(25),
+        ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
+      child: SafeArea(
+        child: Column(  // Changed from Row to Column
+          mainAxisSize: MainAxisSize.min, // Fix unbounded height issue
+          children: [
+            TextField(
               controller: _textController,
               decoration: InputDecoration(
                 hintText: 'Type your message...',
                 filled: true,
-                fillColor: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                // Uncomment this and modify:
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+                  borderSide: BorderSide.none, // This removes the underline
+                ),
+                // Or add this if you want to specifically target the underline:
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide.none, // Remove underline when enabled
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide.none, // Remove underline when focused
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
                 ),
+                hoverColor: Colors.transparent
               ),
               onSubmitted: _isGenerating ? null : _sendMessage,
               enabled: !_isGenerating,
               maxLines: null,
               textInputAction: TextInputAction.send,
             ),
-          ),
-          const SizedBox(width: 8),
-          FloatingActionButton(
-            mini: true,
-            onPressed: _isGenerating ? _stopStream : () => _sendMessage(_textController.text),
-            backgroundColor: theme.colorScheme.primary,
-            child: Icon(
-              _isGenerating ? Icons.stop : Icons.send,
-              color: theme.colorScheme.onPrimary,
+            SizedBox(height: 8), // Add some spacing between TextField and buttons
+            Row(  // Changed from Column to Row
+              mainAxisAlignment: MainAxisAlignment.spaceBetween, // Align buttons to the right
+              children: [
+                // Plus button to open options
+                IconButton(
+                  onPressed: _showOptions,
+                  icon: Icon(Icons.add),
+                  color: theme.colorScheme.primary,
+                ),
+                Row(
+                  children: [
+                    // Camera button
+                    IconButton(
+                      onPressed: _handleCamera,
+                      icon: Icon(Icons.camera_alt_outlined),
+                      color: theme.colorScheme.primary,
+                    ),
+                    // Photo button
+                    IconButton(
+                      onPressed: _handlePhotos,
+                      icon: Icon(Icons.photo_outlined),
+                      color: theme.colorScheme.primary,
+                    ),
+                    // Send button
+                    IconButton(
+                      onPressed: _isGenerating
+                          ? _stopStream
+                          : () => _sendMessage(_textController.text),
+                      icon: Icon(
+                        _isGenerating ? Icons.stop : Icons.send,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Function to show options dialog when plus icon is tapped
+  void _showOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(15),
+              topRight: Radius.circular(15),
             ),
           ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildOptionButton(
+                      icon: Icons.camera_alt_outlined,
+                      label: 'Camera',
+                      onTap: () {
+                        // Handle camera
+                        Navigator.pop(context);
+                      },
+                    ),
+                    _buildOptionButton(
+                      icon: Icons.photo_outlined,
+                      label: 'Photos',
+                      onTap: () {
+                        // Handle photos
+                        Navigator.pop(context);
+                      },
+                    ),
+                    _buildOptionButton(
+                      icon: Icons.upload_file_outlined,
+                      label: 'Files',
+                      onTap: () {
+                        // Handle files
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              // Divider and other options
+              Divider(height: 1),
+              _buildSettingsOption(
+                icon: Icons.brush_outlined,
+                label: 'Choose style',
+                trailing: Row(
+                  children: [
+                    Text(
+                      'Normal',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: Colors.grey,
+                    ),
+                  ],
+                ),
+              ),
+
+              _buildSettingsOption(
+                icon: Icons.timer_outlined,
+                label: 'Use extended thinking',
+                trailing: Row(
+                  children: [
+                    Text(
+                      'PRO',
+                      style: TextStyle(
+                        color: Colors.purple,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Container(
+                      width: 40,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.all(2),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Divider(height: 1),
+              _buildSettingsOption(
+                icon: Icons.settings,
+                label: 'Manage tools',
+                trailing: Row(
+                  children: [
+                    Text(
+                      '2 enabled',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: Colors.grey,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+// Helper method to build option buttons
+  Widget _buildOptionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 90,
+        height: 90,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 28),
+            SizedBox(height: 8),
+            Text(label),
+          ],
+        ),
+      ),
+    );
+  }
+
+// Helper method to build settings options
+  Widget _buildSettingsOption({
+    required IconData icon,
+    required String label,
+    required Widget trailing,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 22, color: Colors.grey.shade600),
+          SizedBox(width: 12),
+          Text(
+            label,
+            style: TextStyle(fontSize: 16),
+          ),
+          Spacer(),
+          trailing,
         ],
       ),
     );
   }
 
+  void _handleCamera() {
+    // Implement camera functionality
+  }
+
+  void _handlePhotos() {
+    // Implement photo selection
+  }
+
+  // cleanup
   @override
   void dispose() {
     _textController.dispose();
