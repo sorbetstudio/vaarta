@@ -69,6 +69,23 @@ class AppColors extends ThemeExtension<AppColors> {
     info: Color(0xFF17A2B8),
   );
 
+  static const mocha = AppColors(
+    primary: Color(0xFF89B4FA), // blue
+    onPrimary: Color(0xFF1E1E2E), // base
+    secondary: Color(0xFFCBA6F7), // mauve
+    onSecondary: Color(0xFF1E1E2E), // base
+    background: Color(0xFF1E1E2E), // base
+    onBackground: Color(0xFFCDD6F4), // text
+    surface: Color(0xFF313244), // surface0
+    onSurface: Color(0xFFCDD6F4), // text
+    surfaceVariant: Color(0xFF45475A), // surface1
+    error: Color(0xFFF38BA8), // red
+    onError: Color(0xFF1E1E2E), // base
+    success: Color(0xFFA6E3A1), // green
+    warning: Color(0xFFF9E2AF), // yellow
+    info: Color(0xFF89DCEB), // sky
+  );
+
   @override
   ThemeExtension<AppColors> copyWith({
     Color? primary,

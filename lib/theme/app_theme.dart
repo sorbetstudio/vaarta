@@ -148,16 +148,71 @@ class AppThemeData {
   }
 
   static ThemeData _buildMochaTheme() {
-    // Similar to _buildLightTheme() but with oceanic colors
-    return _buildLightTheme().copyWith(
-      // Add oceanic-specific overrides
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      extensions: <ThemeExtension<dynamic>>[
+        AppColors.mocha,
+        AppTypography.base,
+        AppSpacing.base,
+        AppRadius.base,
+        AppShadows.dark,
+      ],
+      scaffoldBackgroundColor: AppColors.mocha.background,
+      colorScheme: ColorScheme.dark(
+        primary: AppColors.mocha.primary,
+        secondary: AppColors.mocha.secondary,
+        surface: AppColors.mocha.surface,
+        background: AppColors.mocha.background,
+        error: AppColors.mocha.error,
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: AppColors.mocha.surface,
+        foregroundColor: AppColors.mocha.onSurface,
+        elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+      ),
+      cardTheme: CardTheme(
+        color: AppColors.mocha.surface,
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.base.medium),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.mocha.surfaceVariant,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.base.large),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.base.medium,
+          vertical: AppSpacing.base.small,
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.mocha.primary,
+          foregroundColor: AppColors.mocha.onPrimary,
+          elevation: 3,
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.base.large,
+            vertical: AppSpacing.base.medium,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.base.medium),
+          ),
+        ),
+      ),
+      textTheme: _buildTextTheme(AppColors.mocha.onBackground),
     );
   }
 
   static ThemeData _buildCustomTheme() {
-    // Similar to _buildLightTheme() but with forest colors
+    // Similar to _buildLightTheme() but with user-defined yaml
     return _buildLightTheme().copyWith(
-      // Add forest-specific overrides
+      // Add custom overrides
     );
   }
 
