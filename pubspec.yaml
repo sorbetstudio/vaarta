@@ -1,6 +1,6 @@
 name: vaarta
 description: "A Beautiful FOSS ai Interface, focused on Utility and Deep Integration with the OS."
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 version: 1.0.0+1
 
@@ -23,6 +23,7 @@ dependencies:
   provider: ^6.0.5
   cupertino_icons: ^1.0.8
   riverpod_annotation: ^2.6.1
+  flutter_svg: ^2.0.9
 
 dev_dependencies:
   flutter_test:

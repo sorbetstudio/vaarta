@@ -3,39 +3,66 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vaarta/theme/theme_config.dart';
 
-part 'theme_notifier.g.dart'; // Add this line!  Tells Riverpod to generate code
+part 'theme_notifier.g.dart';
 
 @riverpod
-class ThemeNotifier extends _$ThemeNotifier { // _$ThemeNotifier is a generated mixin
+class ThemeNotifier extends _$ThemeNotifier {
+  static const _themeKey = 'app_theme';
+
   @override
-  ThemeMode build() { // Must return the initial state (ThemeMode)
-    // We'll handle initial loading *inside* build() now.
-    _initializeTheme(); // Call a helper method to load the preference.
-    return ThemeMode.system; // Return a default value *for now*.
+  Future<AppTheme> build() async {
+    return _loadTheme();
   }
 
-  Future<void> _initializeTheme() async {
+  Future<AppTheme> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDarkMode = prefs.getBool('darkMode') ?? false;
-    state = isDarkMode ? ThemeMode.dark : ThemeMode.light;
+    final themeString = prefs.getString(_themeKey);
+    return AppTheme.values.firstWhere(
+      (e) => e.name == themeString,
+      orElse: () => AppTheme.system,
+    );
+  }
+
+  Future<void> setTheme(AppTheme theme) async {
+    state = const AsyncLoading();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_themeKey, theme.name);
+      state = AsyncData(theme);
+    } catch (e, stack) {
+      state = AsyncError(e, stack);
+    }
   }
 
   Future<void> toggleTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    // Use pattern matching for more concise state check
-    switch (state) {
-      case ThemeMode.dark:
-        state = ThemeMode.light;
-        await prefs.setBool('darkMode', false);
-      case ThemeMode.light:
-        state = ThemeMode.dark;
-        await prefs.setBool('darkMode', true);
-      case ThemeMode.system:
-      // If it's system, we'll toggle to dark for simplicity.
-      //  A more robust implementation would check the system's actual theme.
-        state = ThemeMode.system;
-        await prefs.setBool('darkMode', true);
-    }
+    if (!state.hasValue) return;
+
+    final currentTheme = state.value!;
+    final newTheme = switch (currentTheme) {
+      AppTheme.light => AppTheme.dark,
+      AppTheme.dark => AppTheme.light,
+      _ => currentTheme == AppTheme.system ? AppTheme.light : AppTheme.system,
+    };
+
+    await setTheme(newTheme);
   }
+}
+
+@riverpod
+ThemeMode themeMode(ThemeModeRef ref) {
+  final themeAsync = ref.watch(themeNotifierProvider);
+
+  return themeAsync.when(
+    loading: () => ThemeMode.system,
+    error: (_, __) => ThemeMode.system,
+    data:
+        (theme) => switch (theme) {
+          AppTheme.light => ThemeMode.light,
+          AppTheme.dark => ThemeMode.dark,
+          _ => ThemeMode.system,
+        },
+  );
 }
