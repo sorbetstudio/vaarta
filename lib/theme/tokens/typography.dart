@@ -1,6 +1,7 @@
 // lib/theme/tokens/typography.dart
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTypography extends ThemeExtension<AppTypography> {
   final TextStyle h1;
@@ -13,6 +14,8 @@ class AppTypography extends ThemeExtension<AppTypography> {
   final TextStyle body2;
   final TextStyle caption;
   final TextStyle button;
+  final TextStyle code;
+  final TextStyle serif;
 
   const AppTypography({
     required this.h1,
@@ -25,78 +28,84 @@ class AppTypography extends ThemeExtension<AppTypography> {
     required this.body2,
     required this.caption,
     required this.button,
+    required this.code,
+    required this.serif,
   });
 
-  // Base typography from Figma
-  static const base = AppTypography(
-    h1: TextStyle(
-      fontFamily: 'Satoshi',
+  // Base typography with Google Fonts
+  static AppTypography get base => AppTypography(
+    h1: GoogleFonts.sourceSans3(
       fontSize: 32,
       fontWeight: FontWeight.bold,
       letterSpacing: -0.5,
       height: 1.3,
     ),
-    h2: TextStyle(
-      fontFamily: 'Satoshi',
+    h2: GoogleFonts.sourceSans3(
       fontSize: 28,
       fontWeight: FontWeight.bold,
       letterSpacing: -0.5,
       height: 1.3,
     ),
-    h3: TextStyle(
-      fontFamily: 'Satoshi',
+    h3: GoogleFonts.sourceSans3(
       fontSize: 24,
       fontWeight: FontWeight.bold,
       letterSpacing: -0.5,
       height: 1.3,
     ),
-    h4: TextStyle(
-      fontFamily: 'Satoshi',
+    h4: GoogleFonts.sourceSans3(
       fontSize: 20,
       fontWeight: FontWeight.bold,
       letterSpacing: -0.5,
       height: 1.3,
     ),
-    h5: TextStyle(
-      fontFamily: 'Satoshi',
+    h5: GoogleFonts.sourceSans3(
       fontSize: 18,
       fontWeight: FontWeight.bold,
       letterSpacing: -0.5,
       height: 1.3,
     ),
-    h6: TextStyle(
-      fontFamily: 'Satoshi',
+    h6: GoogleFonts.sourceSans3(
       fontSize: 16,
       fontWeight: FontWeight.bold,
       letterSpacing: -0.5,
       height: 1.3,
     ),
-    body1: TextStyle(
-      fontFamily: 'Satoshi',
+    body1: GoogleFonts.sourceSans3(
       fontSize: 16,
       fontWeight: FontWeight.normal,
       letterSpacing: 0.15,
       height: 1.5,
     ),
-    body2: TextStyle(
-      fontFamily: 'Satoshi',
+    body2: GoogleFonts.sourceSans3(
       fontSize: 14,
       fontWeight: FontWeight.normal,
       letterSpacing: 0.15,
       height: 1.5,
     ),
-    caption: TextStyle(
-      fontFamily: 'Satoshi',
+    caption: GoogleFonts.sourceSans3(
       fontSize: 12,
       fontWeight: FontWeight.normal,
       letterSpacing: 0.4,
       height: 1.5,
     ),
-    button: TextStyle(
-      fontFamily: 'Satoshi',
+    button: GoogleFonts.sourceSans3(
       fontSize: 14,
       fontWeight: FontWeight.bold,
       letterSpacing: 0.75,
+      height: 1.5,
+    ),
+    // Add Source Code Pro for code blocks
+    code: GoogleFonts.sourceCodePro(
+      fontSize: 14,
+      fontWeight: FontWeight.normal,
+      letterSpacing: 0,
+      height: 1.5,
+    ),
+    // Add Source Serif Pro for articles or special text
+    serif: GoogleFonts.sourceSerif4(
+      fontSize: 16,
+      fontWeight: FontWeight.normal,
+      letterSpacing: 0.15,
       height: 1.5,
     ),
   );
@@ -113,6 +122,8 @@ class AppTypography extends ThemeExtension<AppTypography> {
     TextStyle? body2,
     TextStyle? caption,
     TextStyle? button,
+    TextStyle? code,
+    TextStyle? serif,
   }) {
     return AppTypography(
       h1: h1 ?? this.h1,
@@ -125,6 +136,8 @@ class AppTypography extends ThemeExtension<AppTypography> {
       body2: body2 ?? this.body2,
       caption: caption ?? this.caption,
       button: button ?? this.button,
+      code: code ?? this.code,
+      serif: serif ?? this.serif,
     );
   }
 
@@ -147,6 +160,8 @@ class AppTypography extends ThemeExtension<AppTypography> {
       body2: TextStyle.lerp(body2, other.body2, t)!,
       caption: TextStyle.lerp(caption, other.caption, t)!,
       button: TextStyle.lerp(button, other.button, t)!,
+      code: TextStyle.lerp(code, other.code, t)!,
+      serif: TextStyle.lerp(serif, other.serif, t)!,
     );
   }
 }
