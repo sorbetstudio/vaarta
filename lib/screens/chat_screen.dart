@@ -14,6 +14,7 @@ import 'package:vaarta/widgets/sk_ui.dart';
 import 'package:vaarta/utils/utils.dart';
 import 'package:vaarta/models/models.dart';
 import 'package:vaarta/providers/messages_notifier.dart';
+import 'package:vaarta/theme/theme_extensions.dart';
 
 /// Displays a chat interface for sending and receiving messages with an AI.
 class ChatScreen extends ConsumerStatefulWidget {
@@ -35,6 +36,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String _streamedResponse = "";
   bool _isScrolling = false;
   bool _isEditingMessages = false;
+  bool _isDisposed = false; // Track if widget is disposed
 
   // Stream controller for RichMessageView
   late StreamController<String> _messageStreamController;
@@ -65,6 +67,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// Loads saved settings from SharedPreferences and initializes the LLM client.
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted || _isDisposed) return; // Check if still mounted
+
     setState(() {
       _apiKey = prefs.getString('apiKey') ?? '';
       _selectedModel = prefs.getString('selectedModel') ?? _selectedModel;
@@ -113,13 +117,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _openSettings() {
     Navigator.of(context)
         .push(MaterialPageRoute(builder: (context) => const SettingsScreen()))
-        .then((_) => _loadSettings());
+        .then((_) {
+          if (mounted && !_isDisposed) {
+            _loadSettings();
+          }
+        });
   }
 
   /// Smoothly scrolls to the bottom of the message list.
   void _smoothScrollToBottom() {
     if (_isScrolling || !_scrollController.hasClients) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isDisposed) return;
       try {
         _isScrolling = true;
         _scrollController.animateTo(
@@ -137,6 +146,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _snapToBottom() {
     if (_isScrolling || !_scrollController.hasClients) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isDisposed) return;
       try {
         _isScrolling = true;
         _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
@@ -164,6 +174,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ref
         .read(messagesNotifierProvider(widget.chatId).notifier)
         .addMessage(userMessage);
+
+    if (!mounted || _isDisposed) return;
 
     setState(() {
       _isGenerating = true;
@@ -197,7 +209,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           .streamCompletion(messages)
           .listen(
             (chunk) {
-              if (!mounted) return;
+              if (!mounted || _isDisposed) return;
               setState(() {
                 _streamedResponse += chunk;
                 if (_useHapticFeedback) HapticFeedback.lightImpact();
@@ -207,6 +219,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               _smoothScrollToBottom();
             },
             onDone: () {
+              if (!mounted || _isDisposed) return;
+
               final aiMessage = ChatMessage(
                 chatId: widget.chatId,
                 content: _streamedResponse,
@@ -225,6 +239,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               _snapToBottom();
             },
             onError: (error) {
+              if (!mounted || _isDisposed) return;
+
               final errorMessage = ChatMessage(
                 chatId: widget.chatId,
                 content: 'Error: $error',
@@ -235,7 +251,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   .read(messagesNotifierProvider(widget.chatId).notifier)
                   .addMessage(errorMessage);
               setState(() {
-                //_messages.add(errorMessage); // REMOVE THIS
                 _isGenerating = false;
                 _streamSubscription = null;
               });
@@ -245,6 +260,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             cancelOnError: true,
           );
     } catch (e) {
+      if (!mounted || _isDisposed) return;
+
       final errorMessage = ChatMessage(
         chatId: widget.chatId,
         content: 'Error: $e',
@@ -266,6 +283,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// Stops the stream generation and saves the partial response.
   void _stopStream() {
     _streamSubscription?.cancel();
+
+    if (!mounted || _isDisposed) return;
 
     // Fixed: Save the partial response instead of discarding it
     if (_streamedResponse.isNotEmpty) {
@@ -297,21 +316,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final messages = ref.watch(messagesNotifierProvider(widget.chatId));
 
     return Scaffold(
-      appBar: _buildAppBar(theme),
+      appBar: _buildAppBar(context),
       body: Center(
         child: Container(
           width: 752.0,
-          padding: const EdgeInsets.symmetric(vertical: 0.0, horizontal: 12.0),
+          padding: EdgeInsets.symmetric(
+            vertical: 0.0,
+            horizontal: context.spacing.medium,
+          ),
           child: Column(
             children: [
-              Expanded(
-                child: _buildMessageListView(theme, messages),
-              ), // Pass messages
-              _buildInputArea(theme),
+              Expanded(child: _buildMessageListView(context, messages)),
+              _buildInputArea(context),
             ],
           ),
         ),
@@ -321,8 +340,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   /// Builds the app bar with navigation and editing options.
-  PreferredSizeWidget _buildAppBar(ThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return PreferredSize(
       preferredSize: const Size.fromHeight(kToolbarHeight),
       child: Container(
@@ -338,7 +358,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               child: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 1,
-                title: const Text('Chat'),
+                title: Text('Chat', style: context.typography.h6),
                 leading: IconButton(
                   icon: const Icon(Icons.chat_bubble_outline),
                   onPressed: _openChatList,
@@ -376,27 +396,40 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Edit System Prompt'),
+            title: Text('Edit System Prompt', style: context.typography.h6),
             content: TextField(
               controller: _systemPromptController,
               maxLines: null,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: "Enter system prompt",
+                hintStyle: TextStyle(
+                  color: context.colors.onSurface.withOpacity(0.6),
+                ),
               ),
             ),
             actions: [
               TextButton(
-                child: const Text('Cancel'),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: context.colors.primary),
+                ),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               TextButton(
-                child: const Text('Save'),
+                child: Text(
+                  'Save',
+                  style: TextStyle(color: context.colors.primary),
+                ),
                 onPressed: () async {
                   final newPrompt = _systemPromptController.text;
-                  setState(() => _systemPromptSetting = newPrompt);
+                  if (mounted && !_isDisposed) {
+                    setState(() => _systemPromptSetting = newPrompt);
+                  }
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.setString('systemPrompt', newPrompt);
-                  Navigator.of(context).pop();
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
                 },
               ),
             ],
@@ -405,23 +438,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   /// Builds the list view for displaying chat messages.
-  Widget _buildMessageListView(ThemeData theme, List<ChatMessage> messages) {
+  Widget _buildMessageListView(
+    BuildContext context,
+    List<ChatMessage> messages,
+  ) {
     return ListView.builder(
       controller: _scrollController,
-      // padding: const EdgeInsets.all(12.0),
       itemCount: messages.length + (_isGenerating ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == messages.length && _isGenerating) {
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12.0),
+            padding: EdgeInsets.symmetric(vertical: context.spacing.medium),
             child: Align(
               alignment: Alignment.centerLeft,
               child:
                   _streamedResponse.isEmpty
                       ? Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: EdgeInsets.all(context.spacing.large),
                         child: ProcessingAnimation(
-                          color: theme.colorScheme.primary,
+                          color: context.colors.primary,
                         ),
                       )
                       : AssistantMessage(
@@ -430,7 +465,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           );
         }
-        return _buildChatMessage(messages[index], theme);
+        return _buildChatMessage(context, messages[index]);
       },
     );
   }
@@ -441,44 +476,45 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   /// Builds a single chat message based on its sender.
-  Widget _buildChatMessage(ChatMessage message, ThemeData theme) {
+  Widget _buildChatMessage(BuildContext context, ChatMessage message) {
     final isUserMessage = message.isUser;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: EdgeInsets.symmetric(vertical: context.spacing.small),
       child: Align(
         alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
-          // constraints: BoxConstraints(
-          //   maxWidth: MediaQuery.of(context).size.width * 0.85,
-          // ),
           child:
               isUserMessage
-                  ? _buildUserMessage(message, theme)
-                  : _buildAssistantMessage(message, theme),
+                  ? _buildUserMessage(context, message)
+                  : _buildAssistantMessage(context, message),
         ),
       ),
     );
   }
 
   /// Builds a user message with editing capability.
-  Widget _buildUserMessage(ChatMessage message, ThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
+  Widget _buildUserMessage(BuildContext context, ChatMessage message) {
     final messageController = TextEditingController(text: message.content);
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary,
-        borderRadius: BorderRadius.circular(16),
+        color: context.colors.primary,
+        borderRadius: BorderRadius.circular(context.radius.large),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.spacing.medium,
+        vertical: context.spacing.medium,
+      ),
       child:
           _isEditingMessages
               ? TextFormField(
                 controller: messageController,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+                style: context.typography.body1.copyWith(
+                  color: context.colors.onPrimary,
+                ),
                 decoration: InputDecoration.collapsed(
                   hintText: "Enter message",
                   hintStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color: context.colors.onPrimary.withOpacity(0.6),
                   ),
                 ),
                 onChanged: (value) {
@@ -497,21 +533,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               )
               : MarkdownBody(
                 data: message.content,
-                styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-                  p: const TextStyle(color: Colors.white, fontSize: 16),
-                  code: TextStyle(
-                    backgroundColor:
-                        isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                    color: theme.colorScheme.onSurface,
-                    fontFamily: 'monospace',
+                styleSheet: MarkdownStyleSheet.fromTheme(
+                  Theme.of(context),
+                ).copyWith(
+                  p: context.typography.body1.copyWith(
+                    color: context.colors.onPrimary,
+                  ),
+                  code: context.typography.code.copyWith(
+                    // backgroundColor: context.colors.surfaceVariant,
+                    color: context.colors.onSurface,
+                    // fontFamily: 'monospace',
                   ),
                   codeblockDecoration: BoxDecoration(
-                    color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(8),
+                    color: context.colors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(context.radius.small),
                   ),
                   blockquoteDecoration: BoxDecoration(
                     border: Border(
-                      left: BorderSide(color: theme.dividerColor, width: 4),
+                      left: BorderSide(
+                        color: context.colors.secondary,
+                        width: 4,
+                      ),
                     ),
                   ),
                 ),
@@ -520,36 +562,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   /// Builds an assistant message with editing capability.
-  Widget _buildAssistantMessage(ChatMessage message, ThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
+  Widget _buildAssistantMessage(BuildContext context, ChatMessage message) {
     final messageController = TextEditingController(text: message.content);
 
     return Container(
-      // constraints: BoxConstraints(maxWidth:MediaQuery.of(context).size.width * 1),
       child:
           _isEditingMessages
               ? Container(
                 decoration: BoxDecoration(
-                  color:
-                      isDark
-                          ? theme.colorScheme.surface
-                          : theme.colorScheme.surface.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(16),
+                  color: context.colors.surface.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(context.radius.large),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                padding: EdgeInsets.symmetric(
+                  horizontal: context.spacing.large,
+                  vertical: context.spacing.medium,
                 ),
                 child: TextFormField(
                   controller: messageController,
-                  style: TextStyle(
-                    color: theme.textTheme.bodyLarge?.color,
-                    fontSize: 16,
-                  ),
+                  style: context.typography.body1,
                   decoration: InputDecoration.collapsed(
                     hintText: "Enter message",
                     hintStyle: TextStyle(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: context.colors.onSurface.withOpacity(0.6),
                     ),
                   ),
                   onChanged: (value) {
@@ -562,9 +596,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           .read(
                             messagesNotifierProvider(widget.chatId).notifier,
                           )
-                          .updateMessage(
-                            updatedMessage,
-                          ); // Update using provider
+                          .updateMessage(updatedMessage);
                       dbHelper.updateMessage(updatedMessage);
                     }
                   },
@@ -575,14 +607,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AssistantMessage(content: message.content),
-                  const SizedBox(height: 8),
+                  SizedBox(height: context.spacing.small),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Regenerate Button
                       IconButton(
                         icon: const Icon(Icons.refresh),
-                        color: theme.colorScheme.primary,
+                        color: context.colors.primary,
                         tooltip: 'Regenerate',
                         onPressed:
                             _isGenerating
@@ -592,7 +624,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       // Copy Button
                       IconButton(
                         icon: const Icon(Icons.copy),
-                        color: theme.colorScheme.primary,
+                        color: context.colors.primary,
                         tooltip: 'Copy',
                         onPressed:
                             () => _copyMessageToClipboard(message.content),
@@ -611,7 +643,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       HapticFeedback.lightImpact();
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Message copied to clipboard')),
+      SnackBar(
+        content: Text(
+          'Message copied to clipboard',
+          style: context.typography.body2,
+        ),
+        backgroundColor: context.colors.surface,
+      ),
     );
   }
 
@@ -631,7 +669,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         )[lastUserMessageIndex];
 
     // Remove the last AI message (the one being regenerated)
-    // You'll need a removeMessage method in your Notifier
     ref
         .read(messagesNotifierProvider(widget.chatId).notifier)
         .removeMessage(originalMessage);
@@ -641,13 +678,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   /// Builds the input area for sending messages.
-  Widget _buildInputArea(ThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
+  Widget _buildInputArea(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.all(16.0),
-      // margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.all(context.spacing.large),
       decoration: BoxDecoration(
-        color: isDark ? Colors.black : theme.colorScheme.surface,
+        color: isDark ? Colors.black : context.colors.surface,
         boxShadow: [
           BoxShadow(
             color: isDark ? Colors.white10 : Colors.black12,
@@ -661,46 +698,51 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ),
       ),
       child: SafeArea(
-        child: Column(  // Changed from Row to Column
-          mainAxisSize: MainAxisSize.min, // Fix unbounded height issue
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: _textController,
               decoration: InputDecoration(
                 hintText: 'Type your message...',
+                hintStyle: TextStyle(
+                  color: context.colors.onSurface.withOpacity(0.6),
+                ),
                 filled: true,
-                // Uncomment this and modify:
+                fillColor: context.colors.surfaceVariant,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none, // This removes the underline
+                  borderRadius: BorderRadius.circular(context.radius.large),
+                  borderSide: BorderSide.none,
                 ),
-                // Or add this if you want to specifically target the underline:
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide.none, // Remove underline when enabled
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(context.radius.large),
+                  borderSide: BorderSide.none,
                 ),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide.none, // Remove underline when focused
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(context.radius.large),
+                  borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: context.spacing.large,
+                  vertical: context.spacing.medium,
                 ),
-                hoverColor: Colors.transparent
+                hoverColor: Colors.transparent,
               ),
+              style: context.typography.body1,
               onSubmitted: _isGenerating ? null : _sendMessage,
               enabled: !_isGenerating,
               maxLines: null,
               textInputAction: TextInputAction.send,
             ),
-            SizedBox(height: 8), // Add some spacing between TextField and buttons
-            Row(  // Changed from Column to Row
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, // Align buttons to the right
+            SizedBox(height: context.spacing.small),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Plus button to open options
                 IconButton(
                   onPressed: _showOptions,
                   icon: Icon(Icons.add),
-                  color: theme.colorScheme.primary,
+                  color: context.colors.primary,
                 ),
                 Row(
                   children: [
@@ -708,22 +750,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     IconButton(
                       onPressed: _handleCamera,
                       icon: Icon(Icons.camera_alt_outlined),
-                      color: theme.colorScheme.primary,
+                      color: context.colors.primary,
                     ),
                     // Photo button
                     IconButton(
                       onPressed: _handlePhotos,
                       icon: Icon(Icons.photo_outlined),
-                      color: theme.colorScheme.primary,
+                      color: context.colors.primary,
                     ),
                     // Send button
                     IconButton(
-                      onPressed: _isGenerating
-                          ? _stopStream
-                          : () => _sendMessage(_textController.text),
+                      onPressed:
+                          _isGenerating
+                              ? _stopStream
+                              : () => _sendMessage(_textController.text),
                       icon: Icon(
                         _isGenerating ? Icons.stop : Icons.send,
-                        color: theme.colorScheme.primary,
+                        color: context.colors.primary,
                       ),
                     ),
                   ],
@@ -744,19 +787,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       builder: (context) {
         return Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade900
-                : Colors.white,
+            color:
+                Theme.of(context).brightness == Brightness.dark
+                    ? context.colors.surfaceVariant
+                    : context.colors.surface,
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(15),
-              topRight: Radius.circular(15),
+              topLeft: Radius.circular(context.radius.medium),
+              topRight: Radius.circular(context.radius.medium),
             ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20.0),
+                padding: EdgeInsets.symmetric(vertical: context.spacing.large),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -797,12 +841,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   children: [
                     Text(
                       'Normal',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: context.colors.secondary),
                     ),
-                    Icon(
-                      Icons.chevron_right,
-                      color: Colors.grey,
-                    ),
+                    Icon(Icons.chevron_right, color: context.colors.secondary),
                   ],
                 ),
               ),
@@ -820,13 +861,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(width: 10),
+                    SizedBox(width: context.spacing.medium),
                     Container(
                       width: 40,
                       height: 24,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(12),
+                        color: context.colors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(
+                          context.radius.medium,
+                        ),
                       ),
                       padding: EdgeInsets.all(2),
                       child: Align(
@@ -835,7 +878,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           width: 20,
                           height: 20,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.colors.surface,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -853,16 +896,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   children: [
                     Text(
                       '2 enabled',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: context.colors.secondary),
                     ),
-                    Icon(
-                      Icons.chevron_right,
-                      color: Colors.grey,
-                    ),
+                    Icon(Icons.chevron_right, color: context.colors.secondary),
                   ],
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: context.spacing.large),
             ],
           ),
         );
@@ -870,7 +910,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-// Helper method to build option buttons
+  // Helper method to build option buttons
   Widget _buildOptionButton({
     required IconData icon,
     required String label,
@@ -882,37 +922,41 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         width: 90,
         height: 90,
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(12),
+          color: context.colors.surfaceVariant,
+          borderRadius: BorderRadius.circular(context.radius.medium),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 28),
-            SizedBox(height: 8),
-            Text(label),
+            Icon(icon, size: 28, color: context.colors.primary),
+            SizedBox(height: context.spacing.small),
+            Text(label, style: context.typography.body2),
           ],
         ),
       ),
     );
   }
 
-// Helper method to build settings options
+  // Helper method to build settings options
   Widget _buildSettingsOption({
     required IconData icon,
     required String label,
     required Widget trailing,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.spacing.large,
+        vertical: context.spacing.medium,
+      ),
       child: Row(
         children: [
-          Icon(icon, size: 22, color: Colors.grey.shade600),
-          SizedBox(width: 12),
-          Text(
-            label,
-            style: TextStyle(fontSize: 16),
+          Icon(
+            icon,
+            size: 22,
+            color: context.colors.onSurface.withOpacity(0.7),
           ),
+          SizedBox(width: context.spacing.medium),
+          Text(label, style: context.typography.body1),
           Spacer(),
           trailing,
         ],

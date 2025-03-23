@@ -1,8 +1,9 @@
+// lib/screens/chat_list_screen.dart
 import 'package:flutter/material.dart';
 import '../services/database_helper.dart';
-import 'package:vaarta/screens/chat_screen.dart'; // Explicit import path
-// import 'package:vaarta/models/models.dart';
-
+import 'package:vaarta/screens/chat_screen.dart';
+import 'package:vaarta/theme/theme_extensions.dart';
+import 'package:vaarta/theme/icons/app_icons.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -14,9 +15,8 @@ class ChatListScreen extends StatefulWidget {
 class _ChatListScreenState extends State<ChatListScreen> {
   List<Map<String, dynamic>> _chatList = [];
   final dbHelper = DatabaseHelper.instance;
-  Set<String> _selectedChats = {}; // Store selected chat IDs
-  bool _isMultiSelectMode = false; // Track multi-select mode
-
+  Set<String> _selectedChats = {};
+  bool _isMultiSelectMode = false;
 
   @override
   void initState() {
@@ -30,10 +30,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
       _chatList = chats;
     });
   }
-    // Future<void> _deleteChat(String chatId) async {
-    //     await dbHelper.deleteChat(chatId);
-    //     _loadChats();
-    // }
 
   @override
   Widget build(BuildContext context) {
@@ -44,45 +40,40 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
-    PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar() {
     return AppBar(
       title: Text(
-        _isMultiSelectMode ? 'Select Chats' : 'Chats', // Change title based on mode
-        style: const TextStyle(
-          fontFamily: 'Arial',
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        _isMultiSelectMode ? 'Select Chats' : 'Chats',
+        style: context.typography.h6.copyWith(color: context.colors.onSurface),
       ),
-      backgroundColor: Colors.black,
+      backgroundColor: context.colors.surface,
       elevation: 0,
       actions: [
-        if (_isMultiSelectMode) ...[ // Show these actions only in multi-select mode
+        if (_isMultiSelectMode) ...[
           IconButton(
-            icon: const Icon(Icons.delete, color: Colors.white),
+            icon: Icon(Icons.delete, color: context.colors.error),
             onPressed: _deleteSelectedChats,
             tooltip: 'Delete Selected',
           ),
           IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
+            icon: Icon(Icons.close, color: context.colors.onSurface),
             onPressed: () {
-                setState(() {
-                _isMultiSelectMode = false; // Exit multi-select mode
-                _selectedChats.clear();    // Clear selections
-                });
+              setState(() {
+                _isMultiSelectMode = false;
+                _selectedChats.clear();
+              });
             },
             tooltip: 'Cancel Selection',
           ),
         ] else
           IconButton(
-            icon: const Icon(Icons.add, color: Colors.white),
+            icon: Icon(Icons.add, color: context.colors.onSurface),
             onPressed: _startNewChat,
             tooltip: 'New Chat',
           ),
       ],
     );
   }
-
 
   Widget _buildBody() {
     if (_chatList.isEmpty) {
@@ -93,26 +84,30 @@ class _ChatListScreenState extends State<ChatListScreen> {
             Icon(
               Icons.chat_bubble_outline,
               size: 64,
-              color: Colors.grey.shade400,
+              color: context.colors.onBackground.withOpacity(0.4),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: context.spacing.medium),
             Text(
               "No chats yet",
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey.shade600,
+              style: context.typography.h5.copyWith(
+                color: context.colors.onBackground.withOpacity(0.6),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: context.spacing.small),
             ElevatedButton.icon(
               onPressed: _startNewChat,
               icon: const Icon(Icons.add),
               label: const Text('Start a new chat'),
               style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white, backgroundColor: const Color(0xFF007BFF), // Example button color
+                foregroundColor: context.colors.onPrimary,
+                backgroundColor: context.colors.primary,
                 elevation: 4,
+                padding: EdgeInsets.symmetric(
+                  horizontal: context.spacing.large,
+                  vertical: context.spacing.small,
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(context.radius.medium),
                 ),
               ),
             ),
@@ -122,6 +117,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     } else {
       return ListView.builder(
         itemCount: _chatList.length,
+        padding: EdgeInsets.all(context.spacing.small),
         itemBuilder: (context, index) {
           final chatMetadata = _chatList[index];
           return _buildChatItem(chatMetadata);
@@ -135,52 +131,76 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final isSelected = _selectedChats.contains(chatId);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      padding: EdgeInsets.symmetric(vertical: context.spacing.extraSmall),
       child: Card(
         elevation: 2,
+        shadowColor: context.colors.onBackground.withOpacity(0.1),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(context.radius.medium),
         ),
         child: ListTile(
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: context.spacing.medium,
+            vertical: context.spacing.small,
+          ),
           leading: _buildChatAvatar(),
           title: Text(
             chatMetadata[DatabaseHelper.chatColumnChatName] ?? 'Chat',
-            style: const TextStyle(fontWeight: FontWeight.w500),
+            style: context.typography.body1.copyWith(
+              fontWeight: FontWeight.w500,
+              color: context.colors.onSurface,
+            ),
           ),
-          subtitle: Text(_formatTimestamp(DateTime.fromMillisecondsSinceEpoch(
-            chatMetadata[DatabaseHelper.chatColumnLastMessageTimestamp] ?? 0,
-          ))),
-            onTap: () {
+          subtitle: Text(
+            _formatTimestamp(
+              DateTime.fromMillisecondsSinceEpoch(
+                chatMetadata[DatabaseHelper.chatColumnLastMessageTimestamp] ??
+                    0,
+              ),
+            ),
+            style: context.typography.body2.copyWith(
+              color: context.colors.onSurface.withOpacity(0.7),
+            ),
+          ),
+          onTap: () {
             if (_isMultiSelectMode) {
-                setState(() {
+              setState(() {
                 if (isSelected) {
-                    _selectedChats.remove(chatId);
+                  _selectedChats.remove(chatId);
                 } else {
-                    _selectedChats.add(chatId);
+                  _selectedChats.add(chatId);
                 }
                 if (_selectedChats.isEmpty) {
-                    _isMultiSelectMode = false; // Exit multi-select if no chats selected
+                  _isMultiSelectMode = false;
                 }
-                });
+              });
             } else {
-                _openChat(chatId);
+              _openChat(chatId);
             }
-            },
-            onLongPress: () {
+          },
+          onLongPress: () {
             setState(() {
-                _isMultiSelectMode = true;
-                _selectedChats.add(chatId);
+              _isMultiSelectMode = true;
+              _selectedChats.add(chatId);
             });
-            },
-            trailing: _isMultiSelectMode
-              ? isSelected
-                  ? Icon(Icons.check_circle, color: Colors.blue) // Show checkmark if selected
-                  : Icon(Icons.radio_button_unchecked) // Show unchecked circle if not selected
-              : Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          },
+          trailing:
+              _isMultiSelectMode
+                  ? isSelected
+                      ? Icon(Icons.check_circle, color: context.colors.primary)
+                      : Icon(
+                        Icons.radio_button_unchecked,
+                        color: context.colors.onSurface.withOpacity(0.3),
+                      )
+                  : Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: context.colors.onSurface.withOpacity(0.5),
+                  ),
         ),
       ),
     );
-}
+  }
 
   Widget _buildChatAvatar() {
     return Container(
@@ -189,21 +209,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.grey.shade300, Colors.grey.shade400],
+          colors: [
+            context.colors.primary.withOpacity(0.7),
+            context.colors.primary,
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
-        ],
+        boxShadow: context.shadows.small,
       ),
-      padding: const EdgeInsets.all(8),
-      child: const Icon(Icons.chat, color: Colors.white),
+      padding: EdgeInsets.all(context.spacing.small),
+      child: Icon(Icons.chat, color: context.colors.onPrimary, size: 20),
     );
   }
-
 
   Widget _buildFloatingActionButton() {
     if (_chatList.isNotEmpty) {
@@ -211,11 +227,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
         onPressed: _startNewChat,
         tooltip: 'New Chat',
         elevation: 4,
-        backgroundColor: const Color(0xFF007BFF), // Example FAB color
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: context.colors.primary,
+        child: Icon(Icons.add, color: context.colors.onPrimary),
       );
     }
-    return const SizedBox.shrink(); // Return an empty widget instead of null
+    return const SizedBox.shrink();
   }
 
   void _startNewChat() async {
@@ -225,20 +241,60 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   void _openChat(String chatId) {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => ChatScreen(chatId: chatId), // Assuming ChatScreen is defined elsewhere
-      ),
+      MaterialPageRoute(builder: (context) => ChatScreen(chatId: chatId)),
     );
   }
-    void _deleteSelectedChats() async {
-    for (final chatId in _selectedChats) {
-      await dbHelper.deleteChat(chatId);
+
+  void _deleteSelectedChats() async {
+    // Show a confirmation dialog using the theme
+    bool confirm =
+        await showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: Text('Delete Chats', style: context.typography.h6),
+                content: Text(
+                  'Are you sure you want to delete ${_selectedChats.length} ${_selectedChats.length == 1 ? "chat" : "chats"}?',
+                  style: context.typography.body1,
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(
+                      'Cancel',
+                      style: context.typography.button.copyWith(
+                        color: context.colors.secondary,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: Text(
+                      'Delete',
+                      style: context.typography.button.copyWith(
+                        color: context.colors.error,
+                      ),
+                    ),
+                  ),
+                ],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(context.radius.medium),
+                ),
+                backgroundColor: context.colors.surface,
+              ),
+        ) ??
+        false;
+
+    if (confirm) {
+      for (final chatId in _selectedChats) {
+        await dbHelper.deleteChat(chatId);
+      }
+      setState(() {
+        _selectedChats.clear();
+        _isMultiSelectMode = false;
+      });
+      _loadChats();
     }
-    setState(() {
-      _selectedChats.clear();
-      _isMultiSelectMode = false;
-    });
-    _loadChats(); // Refresh the chat list
   }
 
   String _formatTimestamp(DateTime dateTime) {
@@ -246,11 +302,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final difference = now.difference(dateTime);
 
     if (difference.inDays > 0) {
-      return '${difference.inDays} days ago';
+      return '${difference.inDays} ${difference.inDays == 1 ? "day" : "days"} ago';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours} hours ago';
+      return '${difference.inHours} ${difference.inHours == 1 ? "hour" : "hours"} ago';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minutes ago';
+      return '${difference.inMinutes} ${difference.inMinutes == 1 ? "minute" : "minutes"} ago';
     } else {
       return 'Just now';
     }
