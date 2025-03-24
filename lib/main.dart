@@ -1,5 +1,4 @@
 // lib/main.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,14 +32,20 @@ class MyApp extends ConsumerWidget {
 
     return themeAsync.when(
       loading:
-          () => const MaterialApp(
+          () => MaterialApp(
             home: Scaffold(body: Center(child: CircularProgressIndicator())),
+            // Add themes here to make sure extensions are available during loading
+            theme: AppThemeData.getThemeData(AppTheme.light, context),
+            darkTheme: AppThemeData.getThemeData(AppTheme.dark, context),
           ),
       error:
           (err, stack) => MaterialApp(
             home: Scaffold(
               body: Center(child: Text('Error loading theme: $err')),
             ),
+            // Add themes here too for error state
+            theme: AppThemeData.getThemeData(AppTheme.light, context),
+            darkTheme: AppThemeData.getThemeData(AppTheme.dark, context),
           ),
       data:
           (appTheme) => MaterialApp(

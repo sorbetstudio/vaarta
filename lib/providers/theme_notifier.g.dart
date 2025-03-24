@@ -6,7 +6,7 @@ part of 'theme_notifier.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$themeModeHash() => r'985a54bed76fb67922f8dd64c29d5a74054506db';
+String _$themeModeHash() => r'a72379d3495bda73a84d6ded3c73a730e0a7fcb8';
 
 /// See also [themeMode].
 @ProviderFor(themeMode)
@@ -22,7 +22,7 @@ final themeModeProvider = AutoDisposeProvider<ThemeMode>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ThemeModeRef = AutoDisposeProviderRef<ThemeMode>;
-String _$themeNotifierHash() => r'f211d302f8dfc793cec390d56e100de36cebf39e';
+String _$themeNotifierHash() => r'ba847f601067dbf54c2395e01355d6c5ac13ba3c';
 
 /// See also [ThemeNotifier].
 @ProviderFor(ThemeNotifier)

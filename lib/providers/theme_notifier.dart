@@ -36,19 +36,6 @@ class ThemeNotifier extends _$ThemeNotifier {
       state = AsyncError(e, stack);
     }
   }
-
-  Future<void> toggleTheme() async {
-    if (!state.hasValue) return;
-
-    final currentTheme = state.value!;
-    final newTheme = switch (currentTheme) {
-      AppTheme.light => AppTheme.dark,
-      AppTheme.dark => AppTheme.light,
-      _ => currentTheme == AppTheme.system ? AppTheme.light : AppTheme.system,
-    };
-
-    await setTheme(newTheme);
-  }
 }
 
 @riverpod
@@ -62,7 +49,10 @@ ThemeMode themeMode(ThemeModeRef ref) {
         (theme) => switch (theme) {
           AppTheme.light => ThemeMode.light,
           AppTheme.dark => ThemeMode.dark,
-          _ => ThemeMode.system,
+          AppTheme.mocha => ThemeMode.dark, //mocka is
+          AppTheme.custom => ThemeMode.light,
+          //todo: Custom brightness would be fixed later
+          AppTheme.system => ThemeMode.system,
         },
   );
 }

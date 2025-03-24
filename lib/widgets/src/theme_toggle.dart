@@ -23,31 +23,7 @@ class ThemeToggle extends ConsumerWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
       error: (_, __) => const Icon(Icons.error),
-      data:
-          (currentTheme) =>
-              isCompact
-                  ? _buildCompactToggle(context, ref, currentTheme)
-                  : _buildFullToggle(context, ref, currentTheme),
-    );
-  }
-
-  Widget _buildCompactToggle(
-    BuildContext context,
-    WidgetRef ref,
-    AppTheme currentTheme,
-  ) {
-    final icon = switch (currentTheme) {
-      AppTheme.light => Icons.dark_mode,
-      AppTheme.dark => Icons.light_mode,
-      _ => Icons.brightness_auto,
-    };
-
-    return IconButton(
-      icon: Icon(icon),
-      tooltip: 'Toggle theme',
-      onPressed: () {
-        ref.read(themeNotifierProvider.notifier).toggleTheme();
-      },
+      data: (currentTheme) => _buildFullToggle(context, ref, currentTheme),
     );
   }
 
