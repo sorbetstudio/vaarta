@@ -38,20 +38,21 @@ Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This pr
 
 ## Todo
 
+- [ ] Issue: Chat History is broken. Chat persistence is lost. (It worked perfectly earlier.)
 - [ ] Issue: Creates a new screen on clicking new message (potentially bloating memory)
 - [ ] Feature: Auto-Rename Chats in Chat History
 - [ ] SQUIRCLES! <- figma_squircle: ^0.6.3
 - [ ] Implement better theming
-  - [ ] Get app_theme.dart to integrate correctly
+  - [x] Get app_theme.dart to integrate correctly
   - [ ] Research and Improve the color scheme
   - [ ] Improve the performance of theme switching toggle
   - [ ] Create a custom mode based on a yaml file that users can edit and backup for theming.
 - [ ] Migrate to riverpod completely for state-management
 - [ ] Improve the implementation of settings screen
 - [ ] Fix the regenerate and copy button design and logic
-- [ ] Improve the input widget
-  - [ ] Decide on the design
-  - [ ] Add the Modality button
+- [x] Improve the input widget
+  - [x] Decide on the design
+  - [x] Add the Modality button
 - [ ] Modalities:
   - [ ] Add support for image input
   - [ ] Add support for text file attachments text files
@@ -107,7 +108,7 @@ flutter run
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting a Pull Request.
+Contributions are welcome! Please read the [Contributing Guidelines](CONTRIBUTING.md) before submitting a Pull Request.
 
 ## 📄 License
 
