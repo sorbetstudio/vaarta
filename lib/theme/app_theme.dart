@@ -104,9 +104,9 @@ class AppThemeData {
         error: AppColors.dark.error,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.dark.surface,
-        foregroundColor: AppColors.dark.onSurface,
-        elevation: 0,
+        backgroundColor: AppColors.dark.background,
+        foregroundColor: AppColors.dark.onBackground,
+        elevation: 5,
         systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
       cardTheme: CardTheme(

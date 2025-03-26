@@ -344,51 +344,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   /// Builds the app bar with navigation and editing options.
   PreferredSizeWidget _buildAppBar(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return PreferredSize(
       preferredSize: const Size.fromHeight(kToolbarHeight),
-      child: Container(
-        color: Colors.transparent,
-        child: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              color:
-                  isDark
-                      ? Colors.black.withValues(alpha: 0.3)
-                      : Colors.white.withValues(alpha: 0.3),
-              child: AppBar(
-                backgroundColor: Colors.transparent,
-                elevation: 1,
-                title: Text('Chat', style: context.typography.h6),
-                leading: IconButton(
-                  icon: const Icon(Icons.chat_bubble_outline),
-                  onPressed: _openChatList,
-                ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_note),
-                    onPressed: _editSystemPrompt,
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      _isEditingMessages ? Icons.visibility : Icons.edit,
-                    ),
-                    onPressed:
-                        () => setState(
-                          () => _isEditingMessages = !_isEditingMessages,
-                        ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.settings),
-                    onPressed: _openSettings,
-                  ),
-                ],
-              ),
-            ),
-          ),
+      child: AppBar(
+        backgroundColor: context.colors.background,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Text('Vaarta', style: context.typography.h4),
+        leading: IconButton(
+          icon: const Icon(Icons.chat_bubble_outline),
+          onPressed: _openChatList,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_note),
+            onPressed: _editSystemPrompt,
+          ),
+          IconButton(
+            icon: Icon(
+              _isEditingMessages ? Icons.visibility : Icons.edit,
+            ),
+            onPressed:
+                () => setState(
+                  () => _isEditingMessages = !_isEditingMessages,
+                ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: _openSettings,
+          ),
+        ],
       ),
     );
   }

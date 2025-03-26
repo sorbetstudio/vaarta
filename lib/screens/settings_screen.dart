@@ -248,11 +248,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       title: Text(
         'Settings',
         style: context.typography.h5.copyWith(
-          color: context.colors.onSurface,
+          color: context.colors.onBackground,
           fontWeight: FontWeight.bold,
         ),
       ),
-      backgroundColor: context.colors.surface,
+      backgroundColor: context.colors.background,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: context.colors.surface,
+      // scrolledUnderElevation: 0,
       elevation: 0,
     );
   }
