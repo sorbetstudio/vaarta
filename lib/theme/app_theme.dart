@@ -101,7 +101,6 @@ class AppThemeData {
         primary: AppColors.dark.primary,
         secondary: AppColors.dark.secondary,
         surface: AppColors.dark.surface,
-        background: AppColors.dark.background,
         error: AppColors.dark.error,
       ),
       appBarTheme: AppBarTheme(

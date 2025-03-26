@@ -15,6 +15,7 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color success;
   final Color warning;
   final Color info;
+  final Color outline; // Added outline color
 
   const AppColors({
     required this.primary,
@@ -31,11 +32,12 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.success,
     required this.warning,
     required this.info,
+    required this.outline, // Added outline parameter
   });
 
   // Light theme colors - Catppuccin Latte palette
   static const light = AppColors(
-    primary: Color(0xFF1E66F5), // blue - main brand color
+    primary: Color(0xFFDC8A78), // blue - main brand color
     onPrimary: Color(0xFFEFF1F5), // base - for text on primary
     secondary: Color(0xFF7287FD), // lavender - secondary actions
     onSecondary: Color(0xFFEFF1F5), // base - for text on secondary
@@ -49,6 +51,7 @@ class AppColors extends ThemeExtension<AppColors> {
     success: Color(0xFF40A02B), // green - for success states
     warning: Color(0xFFDF8E1D), // yellow - for warnings
     info: Color(0xFF209FB5), // sapphire - for information
+    outline: Color(0xFF8C8FA1), // overlay1 - for borders and dividers
   );
 
   // Additional Catppuccin Latte colors for future reference:
@@ -70,7 +73,7 @@ class AppColors extends ThemeExtension<AppColors> {
   // subtext1: Color(0xFF5C5F77),
   // subtext0: Color(0xFF6C6F85),
   // overlay2: Color(0xFF7C7F93),
-  // overlay1: Color(0xFF8C8FA1),
+  // overlay1: Color(0xFF8C8FA1), // Now used for outline
   // overlay0: Color(0xFF9CA0B0),
   // surface2: Color(0xFFACB0BE),
   // surface1: Color(0xFFBCC0CC),
@@ -78,6 +81,24 @@ class AppColors extends ThemeExtension<AppColors> {
   // crust: Color(0xFFDCE0E8),
   // mantle: Color(0xFFE6E9EF),    // Already used for surface
   // base: Color(0xFFEFF1F5),      // Already used for background
+
+  static const dark = AppColors(
+    primary: Color(0xFFDC8A78), // blue
+    onPrimary: Color(0xFF1E1E2E), // base
+    secondary: Color(0xFFCBA6F7), // mauve
+    onSecondary: Color(0xFF1E1E2E), // base
+    background: Color(0xFF1E1E2E), // base
+    onBackground: Color(0xFFCDD6F4), // text
+    surface: Color(0xFF313244), // surface0
+    onSurface: Color(0xFFCDD6F4), // text
+    surfaceVariant: Color(0xFF45475A), // surface1
+    error: Color(0xFFF38BA8), // red
+    onError: Color(0xFF1E1E2E), // base
+    success: Color(0xFFA6E3A1), // green
+    warning: Color(0xFFF9E2AF), // yellow
+    info: Color(0xFF89DCEB), // sky
+    outline: Color(0xFF6C7086), //borders
+  );
 
   // Temporarily swapping mocha and dark
   static const mocha = AppColors(
@@ -95,24 +116,9 @@ class AppColors extends ThemeExtension<AppColors> {
     success: Color(0xFF28A745),
     warning: Color(0xFFFFC107),
     info: Color(0xFF17A2B8),
+    outline: Color(0xFF495057),
   );
 
-  static const dark = AppColors(
-    primary: Color(0xFF89B4FA), // blue
-    onPrimary: Color(0xFF1E1E2E), // base
-    secondary: Color(0xFFCBA6F7), // mauve
-    onSecondary: Color(0xFF1E1E2E), // base
-    background: Color(0xFF1E1E2E), // base
-    onBackground: Color(0xFFCDD6F4), // text
-    surface: Color(0xFF313244), // surface0
-    onSurface: Color(0xFFCDD6F4), // text
-    surfaceVariant: Color(0xFF45475A), // surface1
-    error: Color(0xFFF38BA8), // red
-    onError: Color(0xFF1E1E2E), // base
-    success: Color(0xFFA6E3A1), // green
-    warning: Color(0xFFF9E2AF), // yellow
-    info: Color(0xFF89DCEB), // sky
-  );
 
   @override
   ThemeExtension<AppColors> copyWith({
@@ -130,6 +136,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? success,
     Color? warning,
     Color? info,
+    Color? outline,
   }) {
     return AppColors(
       primary: primary ?? this.primary,
@@ -146,6 +153,7 @@ class AppColors extends ThemeExtension<AppColors> {
       success: success ?? this.success,
       warning: warning ?? this.warning,
       info: info ?? this.info,
+      outline: outline ?? this.outline,
     );
   }
 
@@ -169,6 +177,7 @@ class AppColors extends ThemeExtension<AppColors> {
       success: Color.lerp(success, other.success, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       info: Color.lerp(info, other.info, t)!,
+      outline: Color.lerp(outline, other.outline, t)!,
     );
   }
 }

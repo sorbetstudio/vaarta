@@ -8,7 +8,6 @@ import 'package:vaarta/providers/theme_notifier.dart';
 import 'package:vaarta/theme/theme_config.dart';
 import 'package:vaarta/theme/theme_extensions.dart';
 import '../services/database_helper.dart';
-import 'package:vaarta/widgets/sk_ui.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -272,11 +271,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         children: [
           Text("Theme Mode", style: context.typography.body1),
           const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: context.colors.surfaceVariant,
+          Card(
+            color: context.colors.surfaceVariant,
+            elevation: 2,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(context.radius.medium),
-              boxShadow: context.shadows.small,
             ),
             child: Column(
               children:
@@ -288,7 +287,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                         color:
                             isSelected
                                 ? context.colors.primary
-                                : context.colors.onSurface.withOpacity(0.6),
+                                : context.colors.onSurface.withAlpha(150),
                       ),
                       title: Text(
                         theme.label,
@@ -312,7 +311,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                       },
                       tileColor:
                           isSelected
-                              ? context.colors.primary.withOpacity(0.1)
+                              ? context.colors.primary.withAlpha(25)
                               : null,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(
@@ -334,22 +333,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         horizontal: context.spacing.medium,
         vertical: context.spacing.small,
       ),
-      child: Row(
-        children: [
-          Icon(Icons.psychology, color: context.colors.primary),
-          SizedBox(width: context.spacing.medium),
-          Expanded(
-            child: Text('Reasoning Mode', style: context.typography.body1),
-          ),
-          SkeuomorphicToggle(
-            value: _showReasoning,
-            onChanged: (value) async {
-              setState(() => _showReasoning = value);
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('showReasoning', _showReasoning);
-            },
-          ),
-        ],
+      child: SwitchListTile(
+        title: Text('Reasoning Mode', style: context.typography.body1),
+        secondary: Icon(Icons.psychology, color: context.colors.primary),
+        value: _showReasoning,
+        onChanged: (value) async {
+          setState(() => _showReasoning = value);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('showReasoning', _showReasoning);
+        },
+        activeColor: context.colors.primary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(context.radius.medium),
+        ),
+        tileColor: context.colors.surfaceVariant,
       ),
     );
   }
@@ -360,22 +357,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         horizontal: context.spacing.medium,
         vertical: context.spacing.small,
       ),
-      child: Row(
-        children: [
-          Icon(Icons.vibration, color: context.colors.primary),
-          SizedBox(width: context.spacing.medium),
-          Expanded(
-            child: Text('Haptic Feedback', style: context.typography.body1),
-          ),
-          SkeuomorphicToggle(
-            value: _hapticFeedback,
-            onChanged: (value) async {
-              setState(() => _hapticFeedback = value);
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('hapticFeedback', _hapticFeedback);
-            },
-          ),
-        ],
+      child: SwitchListTile(
+        title: Text('Haptic Feedback', style: context.typography.body1),
+        secondary: Icon(Icons.vibration, color: context.colors.primary),
+        value: _hapticFeedback,
+        onChanged: (value) async {
+          setState(() => _hapticFeedback = value);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('hapticFeedback', _hapticFeedback);
+        },
+        activeColor: context.colors.primary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(context.radius.medium),
+        ),
+        tileColor: context.colors.surfaceVariant,
       ),
     );
   }
@@ -391,27 +386,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         children: [
           Text("Select AI Model", style: context.typography.body1),
           SizedBox(height: context.spacing.small),
-          SkeuomorphicDropdown<String>(
-            value: _selectedModel,
-            items:
-                models.entries
-                    .map(
-                      (entry) => DropdownMenuItem<String>(
-                        value: entry.key,
-                        child: Text(
-                          entry.value,
-                          style: context.typography.body1,
-                        ),
-                      ),
-                    )
-                    .toList(),
-            onChanged: (newValue) async {
-              if (newValue != null) {
-                setState(() => _selectedModel = newValue);
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString('selectedModel', _selectedModel);
-              }
-            },
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(context.radius.medium),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedModel,
+                  isExpanded: true,
+                  icon: Icon(
+                    Icons.arrow_drop_down,
+                    color: context.colors.primary,
+                  ),
+                  items:
+                      models.entries
+                          .map(
+                            (entry) => DropdownMenuItem<String>(
+                              value: entry.key,
+                              child: Text(
+                                entry.value,
+                                style: context.typography.body1,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (newValue) async {
+                    if (newValue != null) {
+                      setState(() => _selectedModel = newValue);
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('selectedModel', _selectedModel);
+                    }
+                  },
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -445,7 +456,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           Text(
             "Controls randomness: 0.0 is deterministic, 2.0 is max randomness.",
             style: context.typography.caption.copyWith(
-              color: context.colors.onSurface.withOpacity(0.6),
+              color: context.colors.onSurface.withAlpha(150),
             ),
           ),
         ],
@@ -485,10 +496,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 ),
               ),
               SizedBox(
-                width: 60,
-                child: SkeuomorphicTextField(
+                width: 70,
+                child: TextField(
                   controller: _maxTokensController,
-                  hintText: "Tokens",
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    isDense: true,
+                  ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: (value) async {
@@ -505,7 +523,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           Text(
             "Maximum number of tokens in the AI response.",
             style: context.typography.caption.copyWith(
-              color: context.colors.onSurface.withOpacity(0.6),
+              color: context.colors.onSurface.withAlpha(150),
             ),
           ),
         ],
@@ -524,9 +542,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         children: [
           Text("API Key", style: context.typography.body1),
           SizedBox(height: context.spacing.small),
-          SkeuomorphicTextField(
+          TextField(
             controller: _apiKeyController,
-            hintText: "Enter your API key",
+            decoration: InputDecoration(
+              hintText: "Enter your API key",
+              filled: true,
+              fillColor: context.colors.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(context.radius.medium),
+                borderSide: BorderSide(color: context.colors.outline),
+              ),
+              prefixIcon: Icon(Icons.key, color: context.colors.primary),
+            ),
             obscureText: true,
             onChanged: (value) async {
               final prefs = await SharedPreferences.getInstance();
@@ -537,7 +564,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           Text(
             "Your API key is stored only on this device",
             style: context.typography.caption.copyWith(
-              color: context.colors.onSurface.withOpacity(0.6),
+              color: context.colors.onSurface.withAlpha(150),
             ),
           ),
         ],
@@ -551,23 +578,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         horizontal: context.spacing.medium,
         vertical: context.spacing.small,
       ),
-      child: ListTile(
-        leading: Icon(Icons.delete_forever, color: context.colors.error),
-        title: Text(
-          "Clear Chat History",
-          style: context.typography.body1.copyWith(color: context.colors.error),
-        ),
-        subtitle: Text(
-          "Delete all chat messages permanently",
-          style: context.typography.caption.copyWith(
-            color: context.colors.onSurface,
-          ),
-        ),
-        onTap: _clearChatHistory,
+      child: Card(
+        elevation: 2,
+        color: context.colors.surfaceVariant,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(context.radius.medium),
         ),
-        tileColor: context.colors.surfaceVariant,
+        child: ListTile(
+          leading: Icon(Icons.delete_forever, color: context.colors.error),
+          title: Text(
+            "Clear Chat History",
+            style: context.typography.body1.copyWith(
+              color: context.colors.error,
+            ),
+          ),
+          subtitle: Text(
+            "Delete all chat messages permanently",
+            style: context.typography.caption.copyWith(
+              color: context.colors.onSurface,
+            ),
+          ),
+          onTap: _clearChatHistory,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(context.radius.medium),
+          ),
+        ),
       ),
     );
   }
@@ -583,9 +618,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         children: [
           Text("System Prompt", style: context.typography.body1),
           SizedBox(height: context.spacing.small),
-          SkeuomorphicTextField(
+          TextField(
             controller: _systemPromptController,
-            hintText: "Enter your custom system prompt",
+            decoration: InputDecoration(
+              hintText: "Enter your custom system prompt",
+              filled: true,
+              fillColor: context.colors.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(context.radius.medium),
+                borderSide: BorderSide(color: context.colors.outline),
+              ),
+            ),
             maxLines: 3,
             onChanged: (value) async {
               final prefs = await SharedPreferences.getInstance();
@@ -596,7 +639,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           Text(
             "Customize the AI's personality and behavior.",
             style: context.typography.caption.copyWith(
-              color: context.colors.onSurface.withOpacity(0.6),
+              color: context.colors.onSurface.withAlpha(150),
             ),
           ),
         ],
@@ -610,45 +653,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         horizontal: context.spacing.medium,
         vertical: context.spacing.small,
       ),
-      child: ListTile(
-        title: Text("Vaarta v1.0.0", style: context.typography.body1),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: context.spacing.tiny),
-            Text(
-              "Yet another chat app.",
-              style: context.typography.caption.copyWith(
-                color: context.colors.onSurface,
-              ),
-            ),
-            SizedBox(height: context.spacing.tiny),
-            Text(
-              "© 2025 Sorbet Studio LLP",
-              style: context.typography.caption.copyWith(
-                color: context.colors.onSurface.withOpacity(0.6),
-              ),
-            ),
-          ],
-        ),
-        leading: Icon(Icons.info_outline, color: context.colors.primary),
+      child: Card(
+        elevation: 2,
+        color: context.colors.surfaceVariant,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(context.radius.medium),
         ),
-        tileColor: context.colors.surfaceVariant,
+        child: ListTile(
+          title: Text("Vaarta v1.0.0", style: context.typography.body1),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: context.spacing.tiny),
+              Text(
+                "Yet another chat app.",
+                style: context.typography.caption.copyWith(
+                  color: context.colors.onSurface,
+                ),
+              ),
+              SizedBox(height: context.spacing.tiny),
+              Text(
+                "© 2025 Sorbet Studio LLP",
+                style: context.typography.caption.copyWith(
+                  color: context.colors.onSurface.withAlpha(150),
+                ),
+              ),
+            ],
+          ),
+          leading: Icon(Icons.info_outline, color: context.colors.primary),
+        ),
       ),
     );
   }
 }
 
-// You may need to update this class if it's not already using the theme system
 class SectionHeader extends StatelessWidget {
   final String title;
   final TextStyle? textStyle;
   final EdgeInsetsGeometry? padding;
 
-  const SectionHeader(this.title, {Key? key, this.textStyle, this.padding})
-    : super(key: key);
+  const SectionHeader(this.title, {super.key, this.textStyle, this.padding});
 
   @override
   Widget build(BuildContext context) {

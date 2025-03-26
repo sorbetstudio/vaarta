@@ -325,11 +325,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           width: 752.0,
           padding: EdgeInsets.symmetric(
             vertical: 0.0,
-            horizontal: context.spacing.medium,
+            horizontal: 0.0,
           ),
           child: Column(
             children: [
-              Expanded(child: _buildMessageListView(context, messages)),
+              Expanded(child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
+                child: _buildMessageListView(context, messages),
+              )),
               _buildInputArea(context),
             ],
           ),
@@ -403,7 +406,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               decoration: InputDecoration(
                 hintText: "Enter system prompt",
                 hintStyle: TextStyle(
-                  color: context.colors.onSurface.withOpacity(0.6),
+                  color: context.colors.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ),
@@ -453,11 +456,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               alignment: Alignment.centerLeft,
               child:
                   _streamedResponse.isEmpty
-                      ? Padding(
-                        padding: EdgeInsets.all(context.spacing.large),
-                        child: ProcessingAnimation(
-                          color: context.colors.primary,
-                        ),
+                      ? ProcessingAnimation(
+                        color: context.colors.primary,
                       )
                       : AssistantMessage(
                         messageStream: _messageStreamController.stream,
@@ -479,7 +479,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget _buildChatMessage(BuildContext context, ChatMessage message) {
     final isUserMessage = message.isUser;
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: context.spacing.small),
+      padding: EdgeInsets.only(top: context.spacing.medium),
       child: Align(
         alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
@@ -514,7 +514,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 decoration: InputDecoration.collapsed(
                   hintText: "Enter message",
                   hintStyle: TextStyle(
-                    color: context.colors.onPrimary.withOpacity(0.6),
+                    color: context.colors.onPrimary.withValues(alpha: 0.6),
                   ),
                 ),
                 onChanged: (value) {
@@ -570,7 +570,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           _isEditingMessages
               ? Container(
                 decoration: BoxDecoration(
-                  color: context.colors.surface.withOpacity(0.7),
+                  color: context.colors.surface.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(context.radius.large),
                 ),
                 padding: EdgeInsets.symmetric(
@@ -583,7 +583,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   decoration: InputDecoration.collapsed(
                     hintText: "Enter message",
                     hintStyle: TextStyle(
-                      color: context.colors.onSurface.withOpacity(0.6),
+                      color: context.colors.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   onChanged: (value) {
@@ -682,13 +682,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: EdgeInsets.all(context.spacing.large),
+      padding: EdgeInsets.all(context.spacing.medium),
       decoration: BoxDecoration(
-        color: isDark ? Colors.black : context.colors.surface,
+        color: context.colors.surface,
         boxShadow: [
           BoxShadow(
             color: isDark ? Colors.white10 : Colors.black12,
-            blurRadius: 10,
+            blurRadius: 5,
             offset: const Offset(0, -1),
           ),
         ],
@@ -706,10 +706,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               decoration: InputDecoration(
                 hintText: 'Type your message...',
                 hintStyle: TextStyle(
-                  color: context.colors.onSurface.withOpacity(0.6),
+                  color: context.colors.onSurface.withValues(alpha: 0.6),
                 ),
                 filled: true,
-                fillColor: context.colors.surfaceVariant,
+                fillColor: context.colors.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(context.radius.large),
                   borderSide: BorderSide.none,
@@ -722,10 +722,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   borderRadius: BorderRadius.circular(context.radius.large),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: context.spacing.large,
-                  vertical: context.spacing.medium,
-                ),
+                // contentPadding: EdgeInsets.symmetric(
+                //   horizontal: context.spacing.large,
+                //   vertical: context.spacing.medium,
+                // ),
                 hoverColor: Colors.transparent,
               ),
               style: context.typography.body1,
@@ -953,7 +953,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Icon(
             icon,
             size: 22,
-            color: context.colors.onSurface.withOpacity(0.7),
+            color: context.colors.onSurface.withValues(alpha: 0.7),
           ),
           SizedBox(width: context.spacing.medium),
           Text(label, style: context.typography.body1),
