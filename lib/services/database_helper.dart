@@ -6,12 +6,12 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart'; // For generating unique chatIds
 
-
 import 'package:vaarta/models/models.dart'; // Import your ChatMessage class from main.dart
 
 class DatabaseHelper {
   static const _databaseName = "ChatDatabase.db";
-  static const _databaseVersion = 2; // Increment database version to trigger onUpgrade if needed
+  static const _databaseVersion =
+      2; // Increment database version to trigger onUpgrade if needed
 
   // Tables
   static const messageTable = 'chat_messages';
@@ -25,7 +25,8 @@ class DatabaseHelper {
   static const columnTimestamp = 'timestamp';
 
   // Chat Table Columns (NEW)
-  static const chatColumnChatId = 'chatId'; // Same as columnChatId in message table, but primary key for chat table
+  static const chatColumnChatId =
+      'chatId'; // Same as columnChatId in message table, but primary key for chat table
   static const chatColumnChatName = 'chatName'; // Optional chat name
   static const chatColumnLastMessageTimestamp = 'lastMessageTimestamp';
 
@@ -42,8 +43,12 @@ class DatabaseHelper {
   _initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, _databaseName);
-    return await openDatabase(path,
-        version: _databaseVersion, onCreate: _onCreate, onUpgrade: _onUpgrade); // Add onUpgrade
+    return await openDatabase(
+      path,
+      version: _databaseVersion,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    ); // Add onUpgrade
   }
 
   Future _onCreate(Database db, int version) async {
@@ -53,7 +58,8 @@ class DatabaseHelper {
 
   // Handle database upgrades if the version changes
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) { // Example upgrade for version 2 (if needed)
+    if (oldVersion < 2) {
+      // Example upgrade for version 2 (if needed)
       await _createChatTable(db); // Ensure chat table exists on upgrade
     }
     // Add more upgrade logic for future versions if needed
@@ -83,20 +89,17 @@ class DatabaseHelper {
     await db.execute(sqlQuery);
   }
 
-
   // --- New Chat Management Functions ---
 
   Future<String> createNewChat() async {
     final chatId = const Uuid().v4(); // Generate a unique chatId
     Database? db = await instance.database;
-    await db!.insert(
-      chatTable,
-      {
-        chatColumnChatId: chatId,
-        chatColumnChatName: 'New Chat', // Default name, can be updated later
-        chatColumnLastMessageTimestamp: DateTime.now().millisecondsSinceEpoch, // Initialize timestamp
-      },
-    );
+    await db!.insert(chatTable, {
+      chatColumnChatId: chatId,
+      chatColumnChatName: 'New Chat', // Default name, can be updated later
+      chatColumnLastMessageTimestamp:
+          DateTime.now().millisecondsSinceEpoch, // Initialize timestamp
+    });
     return chatId;
   }
 
@@ -104,7 +107,8 @@ class DatabaseHelper {
     Database? db = await instance.database;
     return await db!.query(
       chatTable,
-      orderBy: '$chatColumnLastMessageTimestamp DESC', // Display recent chats first
+      orderBy:
+          '$chatColumnLastMessageTimestamp DESC', // Display recent chats first
     );
   }
 
@@ -118,19 +122,19 @@ class DatabaseHelper {
     );
   }
 
-    Future<void> deleteChat(String chatId) async {
-        Database? db = await instance.database;
-        await db!.delete(
-            chatTable,
-            where: '$chatColumnChatId = ?',
-            whereArgs: [chatId]
-        );
-        await db.delete(
-            messageTable,
-            where: '$columnChatId = ?',
-            whereArgs: [chatId]
-        );
-    }
+  Future<void> deleteChat(String chatId) async {
+    Database? db = await instance.database;
+    await db!.delete(
+      chatTable,
+      where: '$chatColumnChatId = ?',
+      whereArgs: [chatId],
+    );
+    await db.delete(
+      messageTable,
+      where: '$columnChatId = ?',
+      whereArgs: [chatId],
+    );
+  }
 
   // --- Modified Message Functions (to update chat metadata on message insert) ---
 
@@ -143,7 +147,7 @@ class DatabaseHelper {
     return id;
   }
 
-    Future<void> updateMessage(ChatMessage message) async {
+  Future<void> updateMessage(ChatMessage message) async {
     Database? db = await instance.database;
     await db!.update(
       messageTable,
@@ -163,21 +167,19 @@ class DatabaseHelper {
     );
   }
 
-
   Future<List<ChatMessage>> getMessages(String chatId) async {
     Database? db = await instance.database;
     final List<Map<String, dynamic>> maps = await db!.query(
       messageTable,
       where: '$columnChatId = ?',
       whereArgs: [chatId],
-      orderBy: columnTimestamp,
+      orderBy: '$columnTimestamp ASC',
     );
 
     return List.generate(maps.length, (i) {
       return _messageFromMap(maps[i]);
     });
   }
-
 
   // Helper methods remain same ( _messageToMap, _messageFromMap )
   Map<String, dynamic> _messageToMap(ChatMessage message) {

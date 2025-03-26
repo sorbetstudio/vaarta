@@ -110,6 +110,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   /// Loads chat messages from the database.
   Future<void> _loadMessages() async {
+    final messages = await dbHelper.getMessages(widget.chatId);
+    if (!mounted || _isDisposed) return;
+
+    ref
+        .read(messagesNotifierProvider(widget.chatId).notifier)
+        .setMessages(messages);
+
     _snapToBottom();
   }
 
@@ -323,16 +330,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body: Center(
         child: Container(
           width: 752.0,
-          padding: EdgeInsets.symmetric(
-            vertical: 0.0,
-            horizontal: 0.0,
-          ),
+          padding: EdgeInsets.symmetric(vertical: 0.0, horizontal: 0.0),
           child: Column(
             children: [
-              Expanded(child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
-                child: _buildMessageListView(context, messages),
-              )),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.spacing.medium,
+                  ),
+                  child: _buildMessageListView(context, messages),
+                ),
+              ),
               _buildInputArea(context),
             ],
           ),
@@ -361,13 +369,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             onPressed: _editSystemPrompt,
           ),
           IconButton(
-            icon: Icon(
-              _isEditingMessages ? Icons.visibility : Icons.edit,
-            ),
+            icon: Icon(_isEditingMessages ? Icons.visibility : Icons.edit),
             onPressed:
-                () => setState(
-                  () => _isEditingMessages = !_isEditingMessages,
-                ),
+                () => setState(() => _isEditingMessages = !_isEditingMessages),
           ),
           IconButton(
             icon: const Icon(Icons.settings),
@@ -441,9 +445,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               alignment: Alignment.centerLeft,
               child:
                   _streamedResponse.isEmpty
-                      ? ProcessingAnimation(
-                        color: context.colors.primary,
-                      )
+                      ? ProcessingAnimation(color: context.colors.primary)
                       : AssistantMessage(
                         messageStream: _messageStreamController.stream,
                       ),

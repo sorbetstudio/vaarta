@@ -26,6 +26,10 @@ class MessagesNotifier extends _$MessagesNotifier {
     ];
   }
 
+  void setMessages(List<ChatMessage> messages) {
+    state = messages;
+  }
+
   void removeMessage(ChatMessage messageToRemove) {
     state =
         state
