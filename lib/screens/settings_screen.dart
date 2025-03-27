@@ -145,97 +145,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         child: ListView(
           padding: EdgeInsets.all(context.spacing.small),
           children: [
-            SectionHeader(
-              'Appearance',
-              textStyle: context.typography.h6,
-              padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
-            ),
+            _buildSectionHeader(context, 'Appearance'),
             _buildThemeSelectorTile(context, currentTheme),
-            Divider(
-              height: 2,
-              thickness: 0,
-              color: context.colors.surfaceVariant,
-            ),
 
-            SectionHeader(
-              'AI Model',
-              textStyle: context.typography.h6,
-              padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
-            ),
+            _buildDivider(context),
+
+            _buildSectionHeader(context, 'AI Model'),
             _buildModelSelector(context),
             _buildTemperatureSlider(context),
             _buildMaxTokensSlider(context),
-            Divider(
-              height: 2,
-              thickness: 0,
-              color: context.colors.surfaceVariant,
-            ),
 
-            SectionHeader(
-              'Reasoning Mode',
-              textStyle: context.typography.h6,
-              padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
-            ),
+            _buildDivider(context),
+
+            _buildSectionHeader(context, 'AI Model'),
             _buildReasoningModeTile(context),
-            Divider(
-              height: 2,
-              thickness: 0,
-              color: context.colors.surfaceVariant,
-            ),
 
-            SectionHeader(
-              'Behavior',
-              textStyle: context.typography.h6,
-              padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
-            ),
+            _buildDivider(context),
+
+            _buildSectionHeader(context, 'Behavior'),
             _buildHapticFeedbackTile(context),
-            Divider(
-              height: 2,
-              thickness: 0,
-              color: context.colors.surfaceVariant,
-            ),
 
-            SectionHeader(
-              'API Settings',
-              textStyle: context.typography.h6,
-              padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
-            ),
+            _buildDivider(context),
+
+            _buildSectionHeader(context, 'API Settings'),
             _buildApiKeyInput(context),
-            Divider(
-              height: 2,
-              thickness: 0,
-              color: context.colors.surfaceVariant,
-            ),
 
-            SectionHeader(
-              'Data',
-              textStyle: context.typography.h6,
-              padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
-            ),
+            _buildDivider(context),
+
+            _buildSectionHeader(context, 'Data'),
             _buildClearChatHistoryTile(context),
-            Divider(
-              height: 2,
-              thickness: 0,
-              color: context.colors.surfaceVariant,
-            ),
 
-            SectionHeader(
-              'Advanced',
-              textStyle: context.typography.h6,
-              padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
-            ),
+            _buildDivider(context),
+
+            _buildSectionHeader(context, 'Advanced'),
             _buildSystemPromptInput(context),
-            Divider(
-              height: 2,
-              thickness: 0,
-              color: context.colors.surfaceVariant,
-            ),
 
-            SectionHeader(
-              'About',
-              textStyle: context.typography.h6,
-              padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
-            ),
+            _buildDivider(context),
+
+            _buildSectionHeader(context, 'About'),
             _buildAboutSection(context),
           ],
         ),
@@ -257,6 +204,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       shadowColor: context.colors.surface,
       // scrolledUnderElevation: 0,
       elevation: 0,
+    );
+  }
+
+  Widget _buildDivider(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: context.spacing.medium),
+      child: Divider(
+        height: 2,
+        thickness: 0,
+        color: context.colors.surfaceVariant,
+        indent: context.spacing.medium,
+        endIndent: context.spacing.medium,
+      ),
     );
   }
 
@@ -427,6 +387,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String string) {
+    return SectionHeader(
+      string,
+      textStyle: context.typography.h6,
+      padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
     );
   }
 
