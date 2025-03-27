@@ -349,7 +349,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(context.radius.medium),
         ),
-        tileColor: context.colors.surfaceVariant,
       ),
     );
   }
@@ -373,7 +372,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(context.radius.medium),
         ),
-        tileColor: context.colors.surfaceVariant,
       ),
     );
   }
