@@ -1,5 +1,7 @@
 // lib/screens/chat_list_screen.dart
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:vaarta/router/app_router.dart';
 import '../services/database_helper.dart';
 import 'package:vaarta/screens/chat_screen.dart';
 import 'package:vaarta/theme/theme_extensions.dart';
@@ -235,14 +237,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   void _startNewChat() async {
-    String newChatId = await dbHelper.createNewChat();
-    _openChat(newChatId);
+    AppRouter.navigateToNewChat(context);
   }
 
   void _openChat(String chatId) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => ChatScreen(chatId: chatId)),
-    );
+    context.go(AppRouter.chatPath(chatId));
   }
 
   void _deleteSelectedChats() async {

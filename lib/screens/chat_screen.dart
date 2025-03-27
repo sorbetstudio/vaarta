@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vaarta/router/app_router.dart';
 import 'dart:ui';
 import '../services/database_helper.dart';
 import '../services/llm_client.dart';
@@ -122,13 +124,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   /// Navigates to the settings screen and reloads settings on return.
   void _openSettings() {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (context) => const SettingsScreen()))
-        .then((_) {
-          if (mounted && !_isDisposed) {
-            _loadSettings();
-          }
-        });
+    context.push(AppRouter.settings);
   }
 
   /// Smoothly scrolls to the bottom of the message list.
@@ -459,7 +455,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   /// Navigates to the chat list screen.
   void _openChatList() {
-    Navigator.of(context).push(SlideRightRoute(page: const ChatListScreen()));
+    context.go(AppRouter.chatList);
   }
 
   /// Builds a single chat message based on its sender.

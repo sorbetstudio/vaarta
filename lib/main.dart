@@ -3,25 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vaarta/providers/theme_notifier.dart';
+import 'package:vaarta/router/app_router.dart';
 import 'package:vaarta/theme/app_theme.dart';
 import 'package:vaarta/theme/theme_config.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'services/database_helper.dart';
-import 'screens/chat_screen.dart';
 
-// Main entry point of the application
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
-  // Set up the app with Provider for state management
   runApp(const ProviderScope(child: MyApp()));
-  // Prevent the screen from sleeping during app usage
   WakelockPlus.enable();
 }
 
-// Root widget of the Vaarta application
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
@@ -31,51 +26,33 @@ class MyApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return themeAsync.when(
-      loading:
-          () => MaterialApp(
-            home: Scaffold(body: Center(child: CircularProgressIndicator())),
-            // Add themes here to make sure extensions are available during loading
-            theme: AppThemeData.getThemeData(AppTheme.light, context),
-            darkTheme: AppThemeData.getThemeData(AppTheme.dark, context),
-          ),
-      error:
-          (err, stack) => MaterialApp(
-            home: Scaffold(
-              body: Center(child: Text('Error loading theme: $err')),
-            ),
-            // Add themes here too for error state
-            theme: AppThemeData.getThemeData(AppTheme.light, context),
-            darkTheme: AppThemeData.getThemeData(AppTheme.dark, context),
-          ),
+      loading: () => _buildLoadingApp(context),
+      error: (err, stack) => _buildErrorApp(context, err),
       data:
-          (appTheme) => MaterialApp(
+          (appTheme) => MaterialApp.router(
             title: 'Vaarta',
             debugShowCheckedModeBanner: false,
             themeMode: themeMode,
             theme: AppThemeData.getThemeData(AppTheme.light, context),
             darkTheme: AppThemeData.getThemeData(AppTheme.dark, context),
-            home: FutureBuilder<String>(
-              future: _getInitialChatId(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                return ChatScreen(chatId: snapshot.data ?? 'default_chat');
-              },
-            ),
+            routerConfig: AppRouter.router,
           ),
     );
   }
 
-  // Retrieves or creates an initial chat ID from the database
-  Future<String> _getInitialChatId() async {
-    final dbHelper = DatabaseHelper.instance;
-    final chats = await dbHelper.getAllChatsMetadata();
-    if (chats.isEmpty) {
-      return await dbHelper.createNewChat();
-    }
-    return chats.first[DatabaseHelper.chatColumnChatId];
+  Widget _buildLoadingApp(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      theme: AppThemeData.getThemeData(AppTheme.light, context),
+      darkTheme: AppThemeData.getThemeData(AppTheme.dark, context),
+    );
+  }
+
+  Widget _buildErrorApp(BuildContext context, Object err) {
+    return MaterialApp(
+      home: Scaffold(body: Center(child: Text('Error loading theme: $err'))),
+      theme: AppThemeData.getThemeData(AppTheme.light, context),
+      darkTheme: AppThemeData.getThemeData(AppTheme.dark, context),
+    );
   }
 }
