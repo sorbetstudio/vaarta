@@ -39,7 +39,7 @@ Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This pr
 ## Todo
 
 - [x] Issue: Chat History is broken. Chat persistence is lost. (It worked perfectly earlier.)
-- [ ] Issue: Creates a new screen on clicking new message (potentially bloating memory)
+- [x] Issue: Creates a new screen on clicking new message (potentially bloating memory)
 - [ ] Feature: Auto-Rename Chats in Chat History
 - [ ] SQUIRCLES! <- figma_squircle: ^0.6.3
 - [ ] Implement better theming
