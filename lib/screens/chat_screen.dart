@@ -17,6 +17,9 @@ import 'package:vaarta/utils/utils.dart';
 import 'package:vaarta/models/models.dart';
 import 'package:vaarta/providers/messages_notifier.dart';
 import 'package:vaarta/theme/theme_extensions.dart';
+import 'package:go_router/go_router.dart';
+import 'package:vaarta/router/app_router.dart';
+import 'package:vaarta/widgets/chat_drawer.dart';
 
 /// Displays a chat interface for sending and receiving messages with an AI.
 class ChatScreen extends ConsumerStatefulWidget {
@@ -64,6 +67,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _messageStreamController = StreamController<String>.broadcast();
     _loadMessages();
     _loadSettings();
+  }
+
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // Update the _openChatList method to open the drawer
+  void _openChatList() {
+    _scaffoldKey.currentState?.openDrawer();
+  }
+
+  // Add this method to handle creating a new chat
+  void _startNewChat() async {
+    AppRouter.navigateToNewChat(context);
   }
 
   /// Loads saved settings from SharedPreferences and initializes the LLM client.
@@ -322,6 +337,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final messages = ref.watch(messagesNotifierProvider(widget.chatId));
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: ChatDrawer(
+        currentChatId: widget.chatId,
+        onNewChat: _startNewChat,
+      ),
       appBar: _buildAppBar(context),
       body: Center(
         child: Container(
@@ -451,11 +471,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         return _buildChatMessage(context, messages[index]);
       },
     );
-  }
-
-  /// Navigates to the chat list screen.
-  void _openChatList() {
-    context.go(AppRouter.chatList);
   }
 
   /// Builds a single chat message based on its sender.

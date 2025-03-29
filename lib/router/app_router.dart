@@ -1,7 +1,6 @@
 // lib/router/app_router.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vaarta/screens/chat_list_screen.dart';
 import 'package:vaarta/screens/chat_screen.dart';
 import 'package:vaarta/screens/settings_screen.dart';
 import 'package:vaarta/screens/splash_screen.dart';
@@ -10,7 +9,6 @@ import 'package:vaarta/services/database_helper.dart';
 class AppRouter {
   // Route names as static constants
   static const String splash = '/';
-  static const String chatList = '/chats';
   static const String chat = '/chat/:id';
   static const String settings = '/settings';
 
@@ -28,14 +26,7 @@ class AppRouter {
 
   // Define all routes in one place
   static final List<RouteBase> _routes = [
-    GoRoute(
-      path: splash,
-      builder: (context, state) => const SplashScreen(),
-    ),
-    GoRoute(
-      path: chatList,
-      builder: (context, state) => const ChatListScreen(),
-    ),
+    GoRoute(path: splash, builder: (context, state) => const SplashScreen()),
     GoRoute(
       path: chat,
       builder: (context, state) {
@@ -49,19 +40,20 @@ class AppRouter {
     ),
   ];
 
-  // Optional: Add global redirects (e.g., for authentication)
+  // Handle initial routing
   static String? _handleRedirect(BuildContext context, GoRouterState state) {
-    // Example: Add authentication logic here
-    return null; // No redirect needed
+    // Don't redirect the splash screen
+    if (state.matchedLocation == splash) {
+      return null;
+    }
+    return null;
   }
 
   // Handle routing errors
   static Widget _buildErrorScreen(BuildContext context, GoRouterState state) {
     return Scaffold(
       appBar: AppBar(title: const Text('Navigation Error')),
-      body: Center(
-        child: Text('No route defined for ${state.uri.path}'),
-      ),
+      body: Center(child: Text('No route defined for ${state.uri.path}')),
     );
   }
 
@@ -72,5 +64,19 @@ class AppRouter {
     if (context.mounted) {
       context.go(chatPath(newChatId));
     }
+  }
+
+  // Helper to get the last active chat
+  static Future<String> getLastActiveChatId() async {
+    final dbHelper = DatabaseHelper.instance;
+    final chats = await dbHelper.getAllChatsMetadata();
+
+    if (chats.isEmpty) {
+      // Create a new chat if none exists
+      return await dbHelper.createNewChat();
+    }
+
+    // Return the most recently used chat
+    return chats.first[DatabaseHelper.chatColumnChatId];
   }
 }
