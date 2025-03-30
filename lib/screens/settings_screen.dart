@@ -635,7 +635,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             children: [
               SizedBox(height: context.spacing.tiny),
               Text(
-                "Yet another chat app.",
+                "(of) making it all work.",
                 style: context.typography.caption.copyWith(
                   color: context.colors.onSurface,
                 ),

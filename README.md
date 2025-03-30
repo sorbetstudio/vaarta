@@ -16,7 +16,7 @@ A beautiful, open-source AI interface built with Flutter, focusing on utility an
 
 ## 📖 About
 
-Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This project aims to create an intuitive and powerful interface for AI interactions.
+Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This project aims to create an intuitive and powerful interface for AI interactions. It's the story (vaarta) of making it all work.
 
 ## 🌟 Features
 
