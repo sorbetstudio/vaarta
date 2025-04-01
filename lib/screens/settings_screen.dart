@@ -36,6 +36,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         "Dolphin Mistral R1 24B",
     "openai/gpt-4o-mini": "GPT 4o Mini",
     "deepseek/deepseek-r1": "Deepseek R1",
+    "google/gemini-2.5-pro-exp-03-25:free": "Gemini 2.5 Pro",
   };
 
   @override
