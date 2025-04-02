@@ -479,7 +479,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Padding(
       padding: EdgeInsets.only(top: context.spacing.medium),
       child: Align(
-        alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
+        alignment:
+            Alignment.centerLeft, // isUserMessage ? Alignment.centerRight :
         child: Container(
           child:
               isUserMessage
@@ -495,7 +496,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final messageController = TextEditingController(text: message.content);
     return Container(
       decoration: BoxDecoration(
-        color: context.colors.primary,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(context.radius.large),
       ),
       padding: EdgeInsets.symmetric(
@@ -507,12 +508,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ? TextFormField(
                 controller: messageController,
                 style: context.typography.body1.copyWith(
-                  color: context.colors.onPrimary,
+                  color: context.colors.onSurface,
                 ),
                 decoration: InputDecoration.collapsed(
                   hintText: "Enter message",
                   hintStyle: TextStyle(
-                    color: context.colors.onPrimary.withValues(alpha: 0.6),
+                    color: context.colors.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 onChanged: (value) {
@@ -535,7 +536,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   Theme.of(context),
                 ).copyWith(
                   p: context.typography.body1.copyWith(
-                    color: context.colors.onPrimary,
+                    color: context.colors.onSurface,
                   ),
                   code: context.typography.code.copyWith(
                     // backgroundColor: context.colors.surfaceVariant,

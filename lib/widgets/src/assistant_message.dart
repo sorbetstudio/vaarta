@@ -2,18 +2,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:vaarta/theme/theme_extensions.dart';
 
 import 'thinking_bubble.dart';
 import 'tool_call_bubble.dart';
 import 'code_block.dart';
 
 /// Represents different types of tokens that can be parsed
-enum TokenType {
-  thinking,
-  toolCall,
-  codeBlock,
-  plainText,
-}
+enum TokenType { thinking, toolCall, codeBlock, plainText }
 
 /// Represents a parsed token from the content
 class ParsedToken {
@@ -21,11 +17,7 @@ class ParsedToken {
   final String content;
   final Map<String, String>? metadata;
 
-  const ParsedToken({
-    required this.type,
-    required this.content,
-    this.metadata,
-  });
+  const ParsedToken({required this.type, required this.content, this.metadata});
 }
 
 /// Abstract base class for token parsing strategies
@@ -41,68 +33,88 @@ class DefaultTokenParser implements TokenParser {
     String remainingContent = content;
 
     // Parse thinking tokens
-    final thinkMatches = RegExp(r'<think>([\s\S]*?)<\/think>', multiLine: true).allMatches(content);
+    final thinkMatches = RegExp(
+      r'<think>([\s\S]*?)<\/think>',
+      multiLine: true,
+    ).allMatches(content);
     for (final match in thinkMatches) {
       final thinkingContent = match.group(1);
       if (thinkingContent != null && thinkingContent.isNotEmpty) {
-        parsedTokens.add(ParsedToken(
-          type: TokenType.thinking,
-          content: thinkingContent,
-        ));
-        remainingContent = remainingContent.replaceFirst(match.group(0)!, '').trim();
+        parsedTokens.add(
+          ParsedToken(type: TokenType.thinking, content: thinkingContent),
+        );
+        remainingContent =
+            remainingContent.replaceFirst(match.group(0)!, '').trim();
       }
     }
 
     // Parse tool call tokens
-    final toolMatches = RegExp(r'<tool>([\s\S]*?)<\/tool>', multiLine: true).allMatches(remainingContent);
+    final toolMatches = RegExp(
+      r'<tool>([\s\S]*?)<\/tool>',
+      multiLine: true,
+    ).allMatches(remainingContent);
     for (final match in toolMatches) {
       final toolContent = match.group(1);
       if (toolContent != null && toolContent.isNotEmpty) {
-        parsedTokens.add(ParsedToken(
-          type: TokenType.toolCall,
-          content: toolContent,
-        ));
-        remainingContent = remainingContent.replaceFirst(match.group(0)!, '').trim();
+        parsedTokens.add(
+          ParsedToken(type: TokenType.toolCall, content: toolContent),
+        );
+        remainingContent =
+            remainingContent.replaceFirst(match.group(0)!, '').trim();
       }
     }
 
     // Parse code block tokens - Modified to improve detection
     // First try specific code tags
-    final codeMatches = RegExp(r'<code(?:\s+lang="([^"]*)")?>([\s\S]*?)<\/code>', multiLine: true).allMatches(remainingContent);
+    final codeMatches = RegExp(
+      r'<code(?:\s+lang="([^"]*)")?>([\s\S]*?)<\/code>',
+      multiLine: true,
+    ).allMatches(remainingContent);
     for (final match in codeMatches) {
       final codeContent = match.group(2);
       final language = match.group(1);
       if (codeContent != null && codeContent.isNotEmpty) {
-        parsedTokens.add(ParsedToken(
-          type: TokenType.codeBlock,
-          content: codeContent,
-          metadata: language != null ? {'language': language} : null,
-        ));
-        remainingContent = remainingContent.replaceFirst(match.group(0)!, '').trim();
+        parsedTokens.add(
+          ParsedToken(
+            type: TokenType.codeBlock,
+            content: codeContent,
+            metadata: language != null ? {'language': language} : null,
+          ),
+        );
+        remainingContent =
+            remainingContent.replaceFirst(match.group(0)!, '').trim();
       }
     }
 
     // Then check for markdown-style code blocks (```code```)
-    final markdownCodeMatches = RegExp(r'```([a-z]*)\n([\s\S]*?)```', multiLine: true).allMatches(remainingContent);
+    final markdownCodeMatches = RegExp(
+      r'```([a-z]*)\n([\s\S]*?)```',
+      multiLine: true,
+    ).allMatches(remainingContent);
     for (final match in markdownCodeMatches) {
       final codeContent = match.group(2);
       final language = match.group(1);
       if (codeContent != null && codeContent.isNotEmpty) {
-        parsedTokens.add(ParsedToken(
-          type: TokenType.codeBlock,
-          content: codeContent,
-          metadata: language != null && language.isNotEmpty ? {'language': language} : null,
-        ));
-        remainingContent = remainingContent.replaceFirst(match.group(0)!, '').trim();
+        parsedTokens.add(
+          ParsedToken(
+            type: TokenType.codeBlock,
+            content: codeContent,
+            metadata:
+                language != null && language.isNotEmpty
+                    ? {'language': language}
+                    : null,
+          ),
+        );
+        remainingContent =
+            remainingContent.replaceFirst(match.group(0)!, '').trim();
       }
     }
 
     // Add remaining content as plain text if not empty
     if (remainingContent.isNotEmpty) {
-      parsedTokens.add(ParsedToken(
-        type: TokenType.plainText,
-        content: remainingContent,
-      ));
+      parsedTokens.add(
+        ParsedToken(type: TokenType.plainText, content: remainingContent),
+      );
     }
 
     return parsedTokens;
@@ -135,8 +147,10 @@ class AssistantMessage extends StatefulWidget {
     this.content,
     this.config = const AssistantMessageConfig(),
     this.customTokenParser,
-  }) : assert(messageStream != null || content != null,
-  'Either messageStream or content must be provided');
+  }) : assert(
+         messageStream != null || content != null,
+         'Either messageStream or content must be provided',
+       );
 
   @override
   State<AssistantMessage> createState() => _AssistantMessageState();
@@ -164,7 +178,7 @@ class _AssistantMessageState extends State<AssistantMessage> {
 
   void _setupStreamSubscription() {
     _streamSubscription = widget.messageStream!.listen(
-          (chunk) {
+      (chunk) {
         _accumulatedContent += chunk;
         _processContent(_accumulatedContent);
       },
@@ -225,28 +239,34 @@ class _AssistantMessageState extends State<AssistantMessage> {
           widgets.add(ToolCallBubble(content: token.content));
           break;
         case TokenType.codeBlock:
-        // Create CodeBlock with either direct content or a content stream
+          // Create CodeBlock with either direct content or a content stream
           if (_isStreaming) {
             // For streaming, we need to create a stream controller that can be updated
             // with each tokenization pass
             final controller = StreamController<String>();
             controller.add(token.content);
-            widgets.add(CodeBlock(
-              contentStream: controller.stream,
-              language: token.metadata?['language'],
-            ));
+            widgets.add(
+              CodeBlock(
+                contentStream: controller.stream,
+                language: token.metadata?['language'],
+              ),
+            );
             // Schedule closure after the build is complete
             Future.microtask(() => controller.close());
           } else {
-            widgets.add(CodeBlock(
-              content: token.content,
-              language: token.metadata?['language'],
-            ));
+            widgets.add(
+              CodeBlock(
+                content: token.content,
+                language: token.metadata?['language'],
+              ),
+            );
           }
           break;
         case TokenType.plainText:
           if (token.content.isNotEmpty) {
-            widgets.add(_buildMarkdownContent(token.content, theme, isDark));
+            widgets.add(
+              _buildMarkdownContent(token.content, theme, isDark, context),
+            );
           }
           break;
       }
@@ -255,31 +275,30 @@ class _AssistantMessageState extends State<AssistantMessage> {
     return widgets;
   }
 
-  Widget _buildMarkdownContent(String content, ThemeData theme, bool isDark) {
+  Widget _buildMarkdownContent(
+    String content,
+    ThemeData theme,
+    bool isDark,
+    BuildContext context,
+  ) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark
-            ? theme.colorScheme.surface
-            : theme.colorScheme.surface.withOpacity(0.7),
+        color:
+            isDark
+                ? context.colors.background
+                : context.colors.background.withOpacity(0.7),
         borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: MarkdownBody(
         data: content,
         styleSheet: MarkdownStyleSheet(
-          p: TextStyle(
-            color: theme.textTheme.bodyLarge?.color,
-            fontSize: 16,
-          ),
-          code: TextStyle(
-            backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-            color: theme.colorScheme.onSurface,
-            fontFamily: 'monospace',
-          ),
-          codeblockDecoration: BoxDecoration(
-            color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(8),
-          ),
+          p: context.typography.serif,
+          code: context.typography.code,
+          // codeblockDecoration: BoxDecoration(
+          //   color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
+          //   borderRadius: BorderRadius.circular(8),
+          // ),
           blockquoteDecoration: BoxDecoration(
             border: Border(
               left: BorderSide(color: theme.dividerColor, width: 4),
