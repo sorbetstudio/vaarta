@@ -31,7 +31,10 @@ class AppRouter {
       path: chat,
       builder: (context, state) {
         final chatId = state.pathParameters['id']!;
-        return ChatScreen(chatId: chatId);
+        return ChatScreen(
+          key: ValueKey(chatId), // Add this key
+          chatId: chatId,
+        );
       },
     ),
     GoRoute(

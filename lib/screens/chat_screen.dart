@@ -496,11 +496,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Container(
       decoration: BoxDecoration(
         color: context.colors.surface,
-        borderRadius: BorderRadius.circular(context.radius.large),
+        borderRadius: BorderRadius.circular(context.radius.medium),
       ),
       padding: EdgeInsets.symmetric(
-        horizontal: context.spacing.medium,
-        vertical: context.spacing.medium,
+        horizontal: context.spacing.small,
+        vertical: context.spacing.small,
       ),
       child:
           _isEditingMessages
@@ -605,13 +605,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AssistantMessage(content: message.content),
-                  SizedBox(height: context.spacing.small),
+                  // SizedBox(height: context.spacing.small),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Regenerate Button
                       IconButton(
                         icon: const Icon(Icons.refresh),
+                        padding: EdgeInsets.all(context.spacing.small),
+                        constraints: BoxConstraints(),
+                        iconSize: 16,
                         color: context.colors.primary,
                         tooltip: 'Regenerate',
                         onPressed:
@@ -622,6 +625,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       // Copy Button
                       IconButton(
                         icon: const Icon(Icons.copy),
+                        padding: EdgeInsets.all(context.spacing.small),
+                        constraints: BoxConstraints(),
+                        iconSize: 16,
                         color: context.colors.primary,
                         tooltip: 'Copy',
                         onPressed:
@@ -680,7 +686,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: EdgeInsets.all(context.spacing.medium),
+      padding: EdgeInsets.all(context.spacing.small),
       decoration: BoxDecoration(
         color: context.colors.surface,
         boxShadow: [

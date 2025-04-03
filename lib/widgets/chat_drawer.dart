@@ -207,8 +207,6 @@ class _ChatDrawerState extends State<ChatDrawer> {
           } else {
             // Navigate to the chat
             context.go(AppRouter.chatPath(chatId));
-            // Close the drawer
-            Navigator.pop(context);
           }
         },
         onLongPress: () {
