@@ -35,11 +35,14 @@ Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This pr
   - [x] Custom params (temp, max tokens, etc)
 - [x] Implement sqflite
 - [x] Implement an LLM Helper to avoid stale AI pub.dev packages
+- [x] Issue: Chat History is broken. Chat persistence is lost. (It worked perfectly earlier.)
+- [x] Issue: Creates a new screen on clicking new message (potentially bloating memory)
+- [x] Improve the input widget
+  - [x] Decide on the design
+  - [x] Add the Modality button
 
 ## Todo
 
-- [x] Issue: Chat History is broken. Chat persistence is lost. (It worked perfectly earlier.)
-- [x] Issue: Creates a new screen on clicking new message (potentially bloating memory)
 - [ ] Feature: Auto-Rename Chats in Chat History
 - [ ] SQUIRCLES! <- figma_squircle: ^0.6.3
 - [ ] Implement better theming
@@ -50,9 +53,7 @@ Vaarta (વાર્તા) means "Story" or "Conversation" in Gujarati. This pr
 - [ ] Migrate to riverpod completely for state-management
 - [ ] Improve the implementation of settings screen
 - [ ] Fix the regenerate and copy button design and logic
-- [x] Improve the input widget
-  - [x] Decide on the design
-  - [x] Add the Modality button
+
 - [ ] Modalities:
   - [ ] Add support for image input
   - [ ] Add support for text file attachments text files
