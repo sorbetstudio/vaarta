@@ -289,7 +289,10 @@ class _AssistantMessageState extends State<AssistantMessage> {
                 : context.colors.background.withOpacity(0.7),
         borderRadius: BorderRadius.circular(16),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        vertical: context.spacing.small,
+        horizontal: context.spacing.tiny,
+      ),
       child: MarkdownBody(
         data: content,
         styleSheet: MarkdownStyleSheet(
