@@ -10,7 +10,6 @@ import 'package:vaarta/router/app_router.dart';
 import 'dart:ui';
 import '../services/database_helper.dart';
 import '../services/llm_client.dart';
-import 'chat_list_screen.dart';
 import 'settings_screen.dart';
 import 'package:vaarta/widgets/sk_ui.dart';
 import 'package:vaarta/utils/utils.dart';
