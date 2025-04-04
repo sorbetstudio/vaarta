@@ -1,19 +1,17 @@
-// lib/widgets/chat_drawer.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // Added
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vaarta/providers/chat_list_provider.dart'; // Added
+import 'package:vaarta/providers/chat_list_provider.dart';
 import 'package:vaarta/router/app_router.dart';
 import 'package:vaarta/services/database_helper.dart';
 import 'package:vaarta/theme/theme_extensions.dart';
-import 'package:flutter_slidable/flutter_slidable.dart'; // Added Step 2.1
-import 'dart:math' as math; // Added for min()
-import 'package:vaarta/models/messages/chat_message.dart'; // Added for ChatMessage/Role
-import 'package:vaarta/providers/llm_client_provider.dart'; // Added for LlmClient provider
-import 'package:vaarta/services/llm_client.dart'; // Added for LlmClient type (used in read)
-import 'dart:async'; // Added for Timer
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'dart:math' as math;
+import 'package:vaarta/models/messages/chat_message.dart';
+import 'package:vaarta/providers/llm_client_provider.dart';
+import 'package:vaarta/services/llm_client.dart';
+import 'dart:async';
 
-// Convert to ConsumerStatefulWidget
 class ChatDrawer extends ConsumerStatefulWidget {
   final String currentChatId;
   final VoidCallback onNewChat;
@@ -25,13 +23,11 @@ class ChatDrawer extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ChatDrawer> createState() => _ChatDrawerState(); // Change to ConsumerState
+  ConsumerState<ChatDrawer> createState() => _ChatDrawerState();
 }
 
-// Change to ConsumerState
 class _ChatDrawerState extends ConsumerState<ChatDrawer> {
-  // List<Map<String, dynamic>> _chatList = []; // Managed by provider
-  // bool _isLoading = true; // Managed by provider state
+  // Old state now managed by provider
   Set<String> _selectedChats = {};
   bool _isMultiSelectMode = false;
 
@@ -49,9 +45,6 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     '⣯',
     '⣷',
   ];
-
-  // initState is no longer needed for loading chats
-  // _loadChats is no longer needed, provider handles loading
 
   @override
   Widget build(BuildContext context) {
@@ -191,14 +184,11 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     final isSelected = _selectedChats.contains(chatId);
     final isCurrentChat = chatId == widget.currentChatId;
 
-    // Step 2.1: Integrate Slidable widget
     return Slidable(
       key: ValueKey(chatId), // Use chatId for a unique key
       startActionPane: ActionPane(
-        // Changed from endActionPane to startActionPane
-        motion: const DrawerMotion(), // Use const for performance
+        motion: const DrawerMotion(),
         children: [
-          // Step 2.2: Add All Swipe Actions (UI Only)
           SlidableAction(
             onPressed:
                 (context) =>
@@ -236,13 +226,11 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
             icon: Icons.autorenew,
             label: 'Auto',
           ),
-        ], // End children
+        ],
       ),
       child: Padding(
-        // Original Padding is now the child of Slidable
         padding: EdgeInsets.symmetric(vertical: context.spacing.extraSmall),
         child: ListTile(
-          // ListTile is inside Padding
           selected: isCurrentChat,
           selectedTileColor: context.colors.primary.withOpacity(0.1),
           contentPadding: EdgeInsets.symmetric(
@@ -282,8 +270,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
             style: context.typography.body2.copyWith(
               color: context.colors.onSurface.withOpacity(0.7),
             ),
-          ), // End Subtitle
-          // onTap, onLongPress, trailing belong to ListTile
+          ),
           onTap: () {
             if (_isMultiSelectMode) {
               setState(() {
@@ -473,8 +460,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
         Navigator.pop(context); // Close drawer
       }
     }
-    // If it wasn't the current chat, the list refreshes automatically
-    // via the provider watch in build(), no explicit pop needed.
+    // List refreshes automatically via provider watch in build()
   }
 
   // Moved _formatTimestamp inside the class
@@ -512,7 +498,6 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     });
   }
 
-  // --- Added for Step 3.1: Single Chat Deletion ---
   void _confirmAndDeleteChat(
     BuildContext context,
     String chatIdToDelete,
@@ -632,9 +617,6 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     } // This closes the try-catch block
   } // This closes the _confirmAndDeleteChat method
 
-  // --- End Step 3.1 ---
-
-  // --- Added for Step 3.2: Manual Rename ---
   Future<void> _showManualRenameDialog(
     BuildContext context,
     String chatId,
@@ -719,8 +701,6 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     );
   }
 
-  // --- End Step 3.2 ---
-
   @override
   void dispose() {
     _spinnerTimer?.cancel(); // Cancel timer on dispose
@@ -756,7 +736,6 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     }
   }
 
-  // --- Added for Step 3.3: Auto Rename (Revised with inline animation) ---
   Future<void> _performAutoRename(BuildContext context, String chatId) async {
     // Initial mounted check is still useful to prevent starting if already disposed
     if (!mounted) return;
@@ -878,6 +857,4 @@ Suggested Title:''';
       }
     } // End of else block (handles non-empty messages)
   } // End of _performAutoRename method
-
-  // --- End Step 3.3 ---
-} // End of _ChatDrawerState class
+}
