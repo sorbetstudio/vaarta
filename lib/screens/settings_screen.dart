@@ -4,10 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vaarta/providers/settings_provider.dart';
+import 'package:vaarta/models/settings_state.dart'; // Import SettingsState
 import 'package:vaarta/providers/theme_notifier.dart';
 import 'package:vaarta/theme/theme_config.dart';
 import 'package:vaarta/theme/theme_extensions.dart';
 import '../services/database_helper.dart';
+import '../services/database/message_repository.dart';
+import 'settings/settings_api_key.dart';
+import 'settings/settings_model_config.dart';
+import 'settings/settings_theme_selector.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -126,6 +132,51 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     }
   }
 
+  // --- Callbacks for extracted widgets ---
+
+  // Use notifier to update settings
+  Future<void> _updateSelectedModel(String? newValue) async {
+    if (newValue != null) {
+      // Call notifier method - no need for setState or direct prefs access
+      await ref.read(settingsProvider.notifier).updateSelectedModel(newValue);
+      // Local state update might still be needed if the widget reads _selectedModel directly
+      // before the provider updates, but let's try without first.
+      // setState(() => _selectedModel = newValue);
+    }
+  }
+
+  // Use notifier to update settings
+  Future<void> _updateTemperature(double value) async {
+    // Call notifier method
+    await ref.read(settingsProvider.notifier).updateTemperature(value);
+    // setState(() => _temperature = value);
+  }
+
+  // Use notifier to update settings
+  Future<void> _updateMaxTokens(int value) async {
+    final clampedValue = value.clamp(50, 4096); // Clamp here before sending
+    // Call notifier method
+    await ref.read(settingsProvider.notifier).updateMaxTokens(clampedValue);
+
+    // Update local controller if necessary (e.g., if user typed invalid number)
+    // The SettingsModelConfig widget already handles clamping and updating its
+    // internal controller, so we might not need this here IF the provider
+    // update triggers a rebuild fast enough. Let's remove it for now.
+    // if (_maxTokensController.text != clampedValue.toString()) {
+    //    _maxTokensController.text = clampedValue.toString();
+    //    _maxTokensController.selection = TextSelection.fromPosition(
+    //      TextPosition(offset: _maxTokensController.text.length),
+    //    );
+    // }
+    // setState(() => _maxTokens = clampedValue);
+  }
+
+  // Use notifier to update settings
+  Future<void> _updateApiKey(String value) async {
+    // Call notifier method
+    await ref.read(settingsProvider.notifier).updateApiKey(value);
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -137,8 +188,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final currentTheme = ref.watch(themeNotifierProvider);
-
+    // Watch the settings provider to get current values
+    final settings = ref.watch(settingsProvider);
     return Scaffold(
       appBar: _buildAppBar(context),
       body: FadeTransition(
@@ -147,29 +198,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           padding: EdgeInsets.all(context.spacing.small),
           children: [
             _buildSectionHeader(context, 'Appearance'),
-            _buildThemeSelectorTile(context, currentTheme),
+            const SettingsThemeSelector(), // Use the new widget
+            _buildDivider(context),
+
+            _buildSectionHeader(context, 'AI Model'),
+            SettingsModelConfig(
+              // Read values from the watched settings provider state
+              selectedModel: settings.selectedModel,
+              temperature: settings.temperature,
+              maxTokens: settings.maxTokens,
+              models: models, // Keep local models map for dropdown labels
+              onModelChanged: _updateSelectedModel,
+              onTemperatureChanged: _updateTemperature,
+              onMaxTokensChanged: _updateMaxTokens,
+            ),
 
             _buildDivider(context),
 
             _buildSectionHeader(context, 'AI Model'),
-            _buildModelSelector(context),
-            _buildTemperatureSlider(context),
-            _buildMaxTokensSlider(context),
-
-            _buildDivider(context),
-
-            _buildSectionHeader(context, 'AI Model'),
-            _buildReasoningModeTile(context),
+            _buildReasoningModeTile(context, settings), // Pass settings
 
             _buildDivider(context),
 
             _buildSectionHeader(context, 'Behavior'),
-            _buildHapticFeedbackTile(context),
+            _buildHapticFeedbackTile(context, settings), // Pass settings
 
             _buildDivider(context),
 
             _buildSectionHeader(context, 'API Settings'),
-            _buildApiKeyInput(context),
+            SettingsApiKeyInput(
+              // Use the new widget
+              controller: _apiKeyController,
+              onChanged: _updateApiKey,
+            ),
 
             _buildDivider(context),
 
@@ -221,77 +282,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
-  Widget _buildThemeSelectorTile(
-    BuildContext context,
-    AsyncValue<AppTheme> currentTheme,
-  ) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: context.spacing.medium,
-        vertical: context.spacing.small,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Theme Mode", style: context.typography.body1),
-          const SizedBox(height: 8),
-          Card(
-            color: context.colors.surfaceVariant,
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(context.radius.medium),
-            ),
-            child: Column(
-              children:
-                  AppTheme.values.map((theme) {
-                    final isSelected = currentTheme.valueOrNull == theme;
-                    return ListTile(
-                      leading: Icon(
-                        theme.icon,
-                        color:
-                            isSelected
-                                ? context.colors.primary
-                                : context.colors.onSurface.withAlpha(150),
-                      ),
-                      title: Text(
-                        theme.label,
-                        style: context.typography.body1.copyWith(
-                          color: context.colors.onSurface,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                      trailing:
-                          isSelected
-                              ? Icon(
-                                Icons.check_circle,
-                                color: context.colors.primary,
-                              )
-                              : null,
-                      onTap: () {
-                        ref
-                            .read(themeNotifierProvider.notifier)
-                            .setTheme(theme);
-                      },
-                      tileColor:
-                          isSelected
-                              ? context.colors.primary.withAlpha(25)
-                              : null,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          context.radius.small,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Removed _buildThemeSelectorTile
+  // Removed _buildModelSelector
+  // Removed _buildTemperatureSlider
+  // Removed _buildMaxTokensSlider
+  // Removed _buildApiKeyInput
 
-  Widget _buildReasoningModeTile(BuildContext context) {
+  Widget _buildReasoningModeTile(BuildContext context, SettingsState settings) {
+    // Add settings parameter
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: context.spacing.medium,
@@ -300,11 +298,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       child: SwitchListTile(
         title: Text('Reasoning Mode', style: context.typography.body1),
         secondary: Icon(Icons.psychology, color: context.colors.primary),
-        value: _showReasoning,
+        // Read value from provider state
+        value: settings.showReasoning,
         onChanged: (value) async {
-          setState(() => _showReasoning = value);
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('showReasoning', _showReasoning);
+          // Update using notifier
+          await ref.read(settingsProvider.notifier).updateShowReasoning(value);
+          // No setState needed here
         },
         activeColor: context.colors.primary,
         shape: RoundedRectangleBorder(
@@ -314,7 +313,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
-  Widget _buildHapticFeedbackTile(BuildContext context) {
+  Widget _buildHapticFeedbackTile(
+    BuildContext context,
+    SettingsState settings,
+  ) {
+    // Add settings parameter
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: context.spacing.medium,
@@ -323,70 +326,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       child: SwitchListTile(
         title: Text('Haptic Feedback', style: context.typography.body1),
         secondary: Icon(Icons.vibration, color: context.colors.primary),
-        value: _hapticFeedback,
+        // Read value from provider state
+        value: settings.useHapticFeedback,
         onChanged: (value) async {
-          setState(() => _hapticFeedback = value);
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('hapticFeedback', _hapticFeedback);
+          // Update using notifier
+          await ref
+              .read(settingsProvider.notifier)
+              .updateUseHapticFeedback(value);
+          // No setState needed here
         },
         activeColor: context.colors.primary,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(context.radius.medium),
         ),
-      ),
-    );
-  }
-
-  Widget _buildModelSelector(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: context.spacing.medium,
-        vertical: context.spacing.small,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Select AI Model", style: context.typography.body1),
-          SizedBox(height: context.spacing.small),
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(context.radius.medium),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedModel,
-                  isExpanded: true,
-                  icon: Icon(
-                    Icons.arrow_drop_down,
-                    color: context.colors.primary,
-                  ),
-                  items:
-                      models.entries
-                          .map(
-                            (entry) => DropdownMenuItem<String>(
-                              value: entry.key,
-                              child: Text(
-                                entry.value,
-                                style: context.typography.body1,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                  onChanged: (newValue) async {
-                    if (newValue != null) {
-                      setState(() => _selectedModel = newValue);
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setString('selectedModel', _selectedModel);
-                    }
-                  },
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -396,149 +348,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       string,
       textStyle: context.typography.h6,
       padding: EdgeInsets.symmetric(horizontal: context.spacing.medium),
-    );
-  }
-
-  Widget _buildTemperatureSlider(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: context.spacing.medium,
-        vertical: context.spacing.small,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Temperature", style: context.typography.body1),
-          Slider(
-            value: _temperature,
-            min: 0.0,
-            max: 2.0,
-            divisions: 20,
-            label: _temperature.toStringAsFixed(1),
-            activeColor: context.colors.primary,
-            inactiveColor: context.colors.surfaceVariant,
-            onChanged: (value) async {
-              setState(() => _temperature = value);
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setDouble('temperature', _temperature);
-            },
-          ),
-          Text(
-            "Controls randomness: 0.0 is deterministic, 2.0 is max randomness.",
-            style: context.typography.caption.copyWith(
-              color: context.colors.onSurface.withAlpha(150),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMaxTokensSlider(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: context.spacing.medium,
-        vertical: context.spacing.small,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Max Tokens", style: context.typography.body1),
-          Row(
-            children: [
-              Expanded(
-                child: Slider(
-                  value: _maxTokens.toDouble(),
-                  min: 50.0,
-                  max: 4096,
-                  divisions: 809,
-                  label: _maxTokens.toString(),
-                  activeColor: context.colors.primary,
-                  inactiveColor: context.colors.surfaceVariant,
-                  onChanged: (value) async {
-                    setState(() {
-                      _maxTokens = value.toInt();
-                      _maxTokensController.text = _maxTokens.toString();
-                    });
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setInt('maxTokens', _maxTokens);
-                  },
-                ),
-              ),
-              SizedBox(
-                width: 70,
-                child: TextField(
-                  controller: _maxTokensController,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    isDense: true,
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onChanged: (value) async {
-                    final parsedValue = int.tryParse(value) ?? 50;
-                    final clampedValue = parsedValue.clamp(50, 4096);
-                    setState(() => _maxTokens = clampedValue);
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setInt('maxTokens', _maxTokens);
-                  },
-                ),
-              ),
-            ],
-          ),
-          Text(
-            "Maximum number of tokens in the AI response.",
-            style: context.typography.caption.copyWith(
-              color: context.colors.onSurface.withAlpha(150),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildApiKeyInput(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: context.spacing.medium,
-        vertical: context.spacing.small,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("API Key", style: context.typography.body1),
-          SizedBox(height: context.spacing.small),
-          TextField(
-            controller: _apiKeyController,
-            decoration: InputDecoration(
-              hintText: "Enter your API key",
-              filled: true,
-              fillColor: context.colors.surface,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(context.radius.medium),
-                borderSide: BorderSide(color: context.colors.outline),
-              ),
-              prefixIcon: Icon(Icons.key, color: context.colors.primary),
-            ),
-            obscureText: true,
-            onChanged: (value) async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setString('apiKey', value);
-            },
-          ),
-          SizedBox(height: context.spacing.small),
-          Text(
-            "Your API key is stored only on this device",
-            style: context.typography.caption.copyWith(
-              color: context.colors.onSurface.withAlpha(150),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -601,8 +410,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             ),
             maxLines: 3,
             onChanged: (value) async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setString('systemPrompt', value);
+              // Update using notifier
+              await ref
+                  .read(settingsProvider.notifier)
+                  .updateSystemPrompt(value);
             },
           ),
           SizedBox(height: context.spacing.small),
