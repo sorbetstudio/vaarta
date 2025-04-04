@@ -10,7 +10,6 @@ import 'package:vaarta/providers/theme_notifier.dart';
 import 'package:vaarta/theme/theme_config.dart';
 import 'package:vaarta/theme/theme_extensions.dart';
 import '../services/database_helper.dart';
-import '../services/database/message_repository.dart';
 import 'settings/settings_api_key.dart';
 import 'settings/settings_model_config.dart';
 import 'settings/settings_theme_selector.dart';
