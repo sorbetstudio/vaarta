@@ -5,6 +5,7 @@ import 'package:vaarta/screens/chat_screen.dart';
 import 'package:vaarta/screens/settings_screen.dart';
 import 'package:vaarta/screens/splash_screen.dart';
 import 'package:vaarta/services/database_helper.dart';
+import 'package:vaarta/services/database/chat_repository.dart';
 
 class AppRouter {
   // Route names as static constants
@@ -62,8 +63,8 @@ class AppRouter {
 
   // Helper method to create a new chat and navigate to it
   static Future<void> navigateToNewChat(BuildContext context) async {
-    final dbHelper = DatabaseHelper.instance;
-    final newChatId = await dbHelper.createNewChat();
+    final chatRepo = ChatRepository(DatabaseHelper.instance);
+    final newChatId = await chatRepo.createNewChat();
     if (context.mounted) {
       context.go(chatPath(newChatId));
     }
@@ -71,12 +72,12 @@ class AppRouter {
 
   // Helper to get the last active chat
   static Future<String> getLastActiveChatId() async {
-    final dbHelper = DatabaseHelper.instance;
-    final chats = await dbHelper.getAllChatsMetadata();
+    final chatRepo = ChatRepository(DatabaseHelper.instance);
+    final chats = await chatRepo.getAllChatsMetadata();
 
     if (chats.isEmpty) {
       // Create a new chat if none exists
-      return await dbHelper.createNewChat();
+      return await chatRepo.createNewChat();
     }
 
     // Return the most recently used chat

@@ -12,6 +12,8 @@ import 'package:go_router/go_router.dart';
 import 'package:vaarta/router/app_router.dart';
 import 'dart:ui';
 import '../services/database_helper.dart';
+import '../services/database/chat_repository.dart';
+import '../services/database/message_repository.dart';
 import '../services/llm_client.dart';
 // import 'settings_screen.dart'; // Settings screen is accessed via router
 import 'package:vaarta/widgets/sk_ui.dart';
@@ -41,6 +43,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final dbHelper = DatabaseHelper.instance;
+  late ChatRepository _chatRepository;
+  late MessageRepository _messageRepository;
   // late LLMClient _llmClient; // Removed: Provided by llmClientProvider
 
   bool _isGenerating = false;
@@ -71,6 +75,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _chatRepository = ChatRepository(dbHelper);
+    _messageRepository = MessageRepository(dbHelper);
     _messageStreamController = StreamController<String>.broadcast();
     _loadMessages();
     // _loadSettings(); // Removed: Settings are loaded by the provider
@@ -94,7 +100,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   /// Loads chat messages from the database.
   Future<void> _loadMessages() async {
-    final messages = await dbHelper.getMessages(widget.chatId);
+    final messages = await _messageRepository.getMessages(widget.chatId);
     if (!mounted || _isDisposed) return;
 
     ref
@@ -185,8 +191,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _streamedResponse = "";
       _textController.clear();
     });
-
-    await dbHelper.insertMessage(userMessage);
+    _logger.info(
+      "Inserting user message (1st call): ${userMessage.content}",
+    ); // Added log
+    await _messageRepository.insertMessage(userMessage);
+    // Removed duplicate insertMessage call here
     _snapToBottom();
 
     try {
@@ -218,8 +227,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               if (!mounted || _isDisposed) return;
               setState(() {
                 _streamedResponse += chunk;
-                if (settings.useHapticFeedback)
+                if (settings.useHapticFeedback) {
                   HapticFeedback.lightImpact(); // Use settings provider
+                }
                 // Add the chunk to the stream controller
                 _messageStreamController.add(chunk);
               });
@@ -251,11 +261,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               }
 
               // Save AI message to DB
-              await dbHelper.insertMessage(aiMessage); // await DB insert
+              await _messageRepository.insertMessage(
+                aiMessage,
+              ); // await DB insert
 
               // --- Auto-title generation logic ---
               try {
-                final chatMetadata = await dbHelper.getChatMetadata(
+                final chatMetadata = await _chatRepository.getChatMetadata(
                   widget.chatId,
                 );
                 if (chatMetadata != null &&
@@ -308,7 +320,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 _isGenerating = false;
                 _streamSubscription = null;
               });
-              dbHelper.insertMessage(errorMessage);
+              _messageRepository.insertMessage(errorMessage);
               _snapToBottom();
             },
             cancelOnError: true,
@@ -329,7 +341,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _isGenerating = false;
         _streamSubscription = null;
       });
-      dbHelper.insertMessage(errorMessage);
+      _messageRepository.insertMessage(errorMessage);
       _snapToBottom();
     }
   }
@@ -451,7 +463,7 @@ Title: """;
       _logger.info("Generated title: '$generatedTitle'");
 
       // 5. Update database
-      await dbHelper.updateChatName(widget.chatId, generatedTitle);
+      await _chatRepository.updateChatName(widget.chatId, generatedTitle);
       _logger.info("Updated chat name in DB for ${widget.chatId}");
 
       // 6. Refresh ChatDrawer (invalidate provider)
@@ -487,8 +499,8 @@ Title: """;
         _isGenerating = false;
         _streamSubscription = null;
       });
-
-      dbHelper.insertMessage(aiMessage);
+      _messageRepository.insertMessage(aiMessage);
+      // Removed duplicate insertMessage call here
     } else {
       setState(() {
         _isGenerating = false;
@@ -785,7 +797,7 @@ Title: """;
                     ref
                         .read(messagesNotifierProvider(widget.chatId).notifier)
                         .updateMessage(updatedMessage);
-                    dbHelper.updateMessage(updatedMessage);
+                    _messageRepository.updateMessage(updatedMessage);
                   }
                 },
                 maxLines: null,
@@ -861,7 +873,7 @@ Title: """;
                             messagesNotifierProvider(widget.chatId).notifier,
                           )
                           .updateMessage(updatedMessage);
-                      dbHelper.updateMessage(updatedMessage);
+                      _messageRepository.updateMessage(updatedMessage);
                     }
                   },
                   maxLines: null,

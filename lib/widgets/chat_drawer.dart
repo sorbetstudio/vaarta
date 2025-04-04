@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:vaarta/providers/chat_list_provider.dart';
 import 'package:vaarta/router/app_router.dart';
 import 'package:vaarta/services/database_helper.dart';
+import 'package:vaarta/services/database/chat_repository.dart';
+import 'package:vaarta/services/database/message_repository.dart';
 import 'package:vaarta/theme/theme_extensions.dart';
 import 'package:vaarta/utils/dialog_utils.dart';
 import 'package:vaarta/utils/date_utils.dart';
@@ -34,6 +36,8 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
   // Old state now managed by provider
   Set<String> _selectedChats = {};
   bool _isMultiSelectMode = false;
+  late final ChatRepository _chatRepository;
+  late final MessageRepository _messageRepository;
 
   // State for auto-rename UI feedback
   final Set<String> _renamingChatIds = {};
@@ -49,6 +53,13 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     '⣯',
     '⣷',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _chatRepository = ChatRepository(DatabaseHelper.instance);
+    _messageRepository = MessageRepository(DatabaseHelper.instance);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -366,8 +377,6 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
   }
 
   void _deleteSelectedChats() async {
-    final dbHelper = DatabaseHelper.instance;
-
     // Show confirmation dialog using utility
     bool confirm =
         await showConfirmationDialog(
@@ -390,7 +399,8 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
 
     // Delete the selected chats
     for (final chatId in _selectedChats) {
-      await dbHelper.deleteChat(chatId);
+      await _chatRepository.deleteChat(chatId);
+      await _messageRepository.deleteMessagesByChatId(chatId);
     }
 
     // Refresh the provider to reload the chat list
@@ -495,7 +505,8 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     try {
       // Delete the chat from the database
       // Logs inside DatabaseHelper will show progress
-      await dbHelper.deleteChat(chatIdToDelete);
+      await _chatRepository.deleteChat(chatIdToDelete);
+      await _messageRepository.deleteMessagesByChatId(chatIdToDelete);
 
       // Invalidate the provider to trigger a reload via watch() in build()
       ref.invalidate(chatListProvider);
@@ -573,7 +584,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
 
     if (newName != null && newName.isNotEmpty && newName != currentName) {
       try {
-        await dbHelper.updateChatName(chatId, newName);
+        await _chatRepository.updateChatName(chatId, newName);
         if (mounted) {
           ref.invalidate(chatListProvider);
         }
@@ -650,7 +661,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     final llmClient = ref.read(llmClientProvider);
 
     // Fetch messages outside try-catch initially to handle empty case cleanly
-    final messages = await dbHelper.getMessages(chatId);
+    final messages = await _messageRepository.getMessages(chatId);
 
     // Handle empty chat case - Stop UI update and exit.
     if (messages.isEmpty) {
@@ -716,7 +727,7 @@ Suggested Title:''';
         // --- Database Update and UI Refresh ---
         // Perform these actions *without* checking 'mounted'
         if (generatedTitle != null) {
-          await dbHelper.updateChatName(chatId, generatedTitle);
+          await _chatRepository.updateChatName(chatId, generatedTitle);
           // Use the stored container to refresh the provider.
           container.refresh(chatListProvider);
           print(

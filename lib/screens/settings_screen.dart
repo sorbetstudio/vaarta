@@ -9,6 +9,7 @@ import 'package:vaarta/theme/theme_config.dart';
 import 'package:vaarta/theme/theme_extensions.dart';
 import 'package:vaarta/widgets/shared/section_header.dart';
 import '../services/database_helper.dart';
+import '../services/database/message_repository.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -73,7 +74,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   }
 
   Future<void> _clearChatHistory() async {
-    final dbHelper = DatabaseHelper.instance;
+    final messageRepo = MessageRepository(DatabaseHelper.instance);
     final confirmed =
         await showDialog<bool>(
           context: context,
@@ -107,7 +108,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         false;
 
     if (confirmed) {
-      await dbHelper.clearAllMessages();
+      await messageRepo.clearAllMessages();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
