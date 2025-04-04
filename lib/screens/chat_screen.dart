@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:vaarta/utils/clipboard_utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vaarta/widgets/shared/loading_indicator.dart';
+import 'package:vaarta/widgets/shared/error_message_widget.dart';
 import 'package:go_router/go_router.dart';
 // import 'package:shared_preferences/shared_preferences.dart'; // No longer needed here
 import 'package:vaarta/router/app_router.dart';
@@ -504,25 +507,18 @@ Title: """;
     // Handle settings loading/error states
     if (settingsState.isLoading) {
       return Scaffold(
-        appBar: _buildAppBar(context, settingsState), // Pass settings state
-        body: Center(child: CircularProgressIndicator()),
+        appBar: _buildAppBar(context, settingsState),
+        body: const Center(child: LoadingIndicator(key: null)),
       );
     }
 
     if (settingsState.errorMessage != null) {
       return Scaffold(
-        appBar: _buildAppBar(context, settingsState), // Pass settings state
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Error loading settings: ${settingsState.errorMessage}\nPlease check your connection or restart the app.',
-              style: context.typography.body1.copyWith(
-                color: context.colors.error,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
+        appBar: _buildAppBar(context, settingsState),
+        body: ErrorMessageWidget(
+          key: null,
+          message: 'Error loading settings',
+          details: settingsState.errorMessage,
         ),
       );
     }
@@ -901,34 +897,16 @@ Title: """;
                         color: context.colors.primary,
                         tooltip: 'Copy',
                         onPressed:
-                            () => _copyMessageToClipboard(
-                              message.content,
-                              settings,
-                            ), // Pass settings
+                            () => copyToClipboard(
+                              context: context,
+                              text: message.content,
+                              useHapticFeedback: settings.useHapticFeedback,
+                            ),
                       ),
                     ],
                   ),
                 ],
               ),
-    );
-  }
-
-  /// Copies the message content to clipboard
-  void _copyMessageToClipboard(String content, SettingsState settings) {
-    // Added settings param
-    Clipboard.setData(ClipboardData(text: content));
-    if (settings.useHapticFeedback) {
-      // Use settings provider
-      HapticFeedback.lightImpact();
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Message copied to clipboard',
-          style: context.typography.body2,
-        ),
-        backgroundColor: context.colors.surface,
-      ),
     );
   }
 

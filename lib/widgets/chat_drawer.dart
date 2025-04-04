@@ -5,6 +5,10 @@ import 'package:vaarta/providers/chat_list_provider.dart';
 import 'package:vaarta/router/app_router.dart';
 import 'package:vaarta/services/database_helper.dart';
 import 'package:vaarta/theme/theme_extensions.dart';
+import 'package:vaarta/utils/dialog_utils.dart';
+import 'package:vaarta/utils/date_utils.dart';
+import 'package:vaarta/widgets/shared/loading_indicator.dart';
+import 'package:vaarta/widgets/shared/error_message_widget.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'dart:math' as math;
 import 'package:vaarta/models/messages/chat_message.dart';
@@ -58,23 +62,12 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
           _buildDrawerHeader(context),
           // Use AsyncValue widget to handle loading/error/data states
           chatListAsync.when(
-            loading:
-                () => const Expanded(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
+            loading: () => const Expanded(child: LoadingIndicator()),
             error:
                 (err, stack) => Expanded(
-                  child: Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(context.spacing.medium),
-                      child: Text(
-                        'Error loading chats:\n$err',
-                        style: context.typography.body1.copyWith(
-                          color: context.colors.error,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                  child: ErrorMessageWidget(
+                    message: 'Error loading chats',
+                    details: err.toString(),
                   ),
                 ),
             data: (chatList) {
@@ -260,7 +253,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
             isCurrentChat,
           ), // Updated title
           subtitle: Text(
-            _formatTimestamp(
+            formatTimestamp(
               // Calling method within the class now
               DateTime.fromMillisecondsSinceEpoch(
                 chatMetadata[DatabaseHelper.chatColumnLastMessageTimestamp] ??
@@ -375,33 +368,15 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
   void _deleteSelectedChats() async {
     final dbHelper = DatabaseHelper.instance;
 
-    // Show confirmation dialog
+    // Show confirmation dialog using utility
     bool confirm =
-        await showDialog<bool>(
+        await showConfirmationDialog(
           context: context,
-          builder:
-              (context) => AlertDialog(
-                title: Text('Delete Chats', style: context.typography.h6),
-                content: Text(
-                  'Are you sure you want to delete ${_selectedChats.length} ${_selectedChats.length == 1 ? "chat" : "chats"}?',
-                  style: context.typography.body1,
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text('Cancel', style: context.typography.button),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: Text(
-                      'Delete',
-                      style: context.typography.button.copyWith(
-                        color: context.colors.error,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          title: 'Delete Chats',
+          content:
+              'Are you sure you want to delete ${_selectedChats.length} ${_selectedChats.length == 1 ? "chat" : "chats"}?',
+          confirmText: 'Delete',
+          confirmColor: context.colors.error,
         ) ??
         false;
 
@@ -463,22 +438,6 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     // List refreshes automatically via provider watch in build()
   }
 
-  // Moved _formatTimestamp inside the class
-  String _formatTimestamp(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inDays > 0) {
-      return '${difference.inDays} ${difference.inDays == 1 ? "day" : "days"} ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} ${difference.inHours == 1 ? "hour" : "hours"} ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} ${difference.inMinutes == 1 ? "minute" : "minutes"} ago';
-    } else {
-      return 'Just now';
-    }
-  }
-
   // Added _toggleSelection method required by onLongPress in ListTile
   void _toggleSelection(String chatId) {
     setState(() {
@@ -504,33 +463,14 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
   ) async {
     final dbHelper = DatabaseHelper.instance;
 
-    // Show confirmation dialog using theme styles
+    // Show confirmation dialog using utility
     bool confirm =
-        await showDialog<bool>(
+        await showConfirmationDialog(
           context: context,
-          builder:
-              (context) => AlertDialog(
-                title: Text('Delete Chat', style: context.typography.h6),
-                content: Text(
-                  'Are you sure you want to delete this chat?',
-                  style: context.typography.body1,
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text('Cancel', style: context.typography.button),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: Text(
-                      'Delete',
-                      style: context.typography.button.copyWith(
-                        color: context.colors.error,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          title: 'Delete Chat',
+          content: 'Are you sure you want to delete this chat?',
+          confirmText: 'Delete',
+          confirmColor: context.colors.error,
         ) ??
         false;
 
@@ -623,82 +563,34 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     String currentName,
   ) async {
     final dbHelper = DatabaseHelper.instance;
-    final nameController = TextEditingController(text: currentName);
 
-    return showDialog<void>(
+    final newName = await showTextInputDialog(
       context: context,
-      barrierDismissible: false, // Prevent closing by tapping outside
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: Text('Rename Chat', style: context.typography.h6),
-          content: TextField(
-            controller: nameController,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: 'Enter new chat name',
-              hintStyle: context.typography.body1.copyWith(
-                color: context.colors.onBackground.withOpacity(0.5),
-              ),
-            ),
-            style: context.typography.body1,
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Cancel', style: context.typography.button),
-              onPressed: () {
-                Navigator.of(dialogContext).pop(); // Close the dialog
-              },
-            ),
-            TextButton(
-              child: Text('Save', style: context.typography.button),
-              onPressed: () async {
-                final newName = nameController.text.trim();
-                // Validate: Check if not empty and different from original
-                if (newName.isNotEmpty && newName != currentName) {
-                  try {
-                    // Update the database
-                    await dbHelper.updateChatName(chatId, newName);
-
-                    // Refresh the chat list using the provider
-                    // Check if widget is still mounted before interacting with ref
-                    if (mounted) {
-                      // Invalidate the provider to trigger a refresh
-                      ref.invalidate(chatListProvider);
-                    }
-
-                    // Close the dialog *after* successful update and refresh
-                    // Check context existence before popping
-                    if (dialogContext.mounted) {
-                      Navigator.of(dialogContext).pop();
-                    }
-                  } catch (e) {
-                    // Handle potential errors during DB update
-                    // Check context existence before showing Snackbar
-                    if (dialogContext.mounted) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Error renaming chat: $e',
-                            style: context.typography.body2,
-                          ),
-                          backgroundColor: context.colors.error,
-                        ),
-                      );
-                    }
-                  }
-                } else {
-                  // If name is same or empty, just close the dialog
-                  // Check context existence before popping
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                }
-              },
-            ),
-          ],
-        );
-      },
+      title: 'Rename Chat',
+      hintText: 'Enter new chat name',
+      initialValue: currentName,
     );
+
+    if (newName != null && newName.isNotEmpty && newName != currentName) {
+      try {
+        await dbHelper.updateChatName(chatId, newName);
+        if (mounted) {
+          ref.invalidate(chatListProvider);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Error renaming chat: $e',
+                style: context.typography.body2,
+              ),
+              backgroundColor: context.colors.error,
+            ),
+          );
+        }
+      }
+    }
   }
 
   @override

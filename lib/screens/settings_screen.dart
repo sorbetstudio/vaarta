@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vaarta/providers/theme_notifier.dart';
 import 'package:vaarta/theme/theme_config.dart';
 import 'package:vaarta/theme/theme_extensions.dart';
+import 'package:vaarta/widgets/shared/section_header.dart';
 import '../services/database_helper.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -652,35 +653,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           ),
           leading: Icon(Icons.info_outline, color: context.colors.primary),
         ),
-      ),
-    );
-  }
-}
-
-class SectionHeader extends StatelessWidget {
-  final String title;
-  final TextStyle? textStyle;
-  final EdgeInsetsGeometry? padding;
-
-  const SectionHeader(this.title, {super.key, this.textStyle, this.padding});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding:
-          padding ??
-          EdgeInsets.symmetric(
-            horizontal: context.spacing.medium,
-            vertical: context.spacing.small,
-          ),
-      child: Text(
-        title,
-        style:
-            textStyle ??
-            context.typography.h6.copyWith(
-              color: context.colors.primary,
-              fontWeight: FontWeight.bold,
-            ),
       ),
     );
   }
