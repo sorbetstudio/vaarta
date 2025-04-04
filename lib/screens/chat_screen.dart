@@ -5,20 +5,23 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:shared_preferences/shared_preferences.dart'; // No longer needed here
 import 'package:vaarta/router/app_router.dart';
 import 'dart:ui';
 import '../services/database_helper.dart';
 import '../services/llm_client.dart';
-import 'settings_screen.dart';
+// import 'settings_screen.dart'; // Settings screen is accessed via router
 import 'package:vaarta/widgets/sk_ui.dart';
 import 'package:vaarta/utils/utils.dart';
 import 'package:vaarta/models/models.dart';
 import 'package:vaarta/providers/messages_notifier.dart';
+import 'package:vaarta/providers/settings_provider.dart'; // Added
+import 'package:vaarta/providers/llm_client_provider.dart'; // Added
+import 'package:vaarta/models/settings_state.dart'; // Added import for SettingsState
 import 'package:vaarta/theme/theme_extensions.dart';
-import 'package:go_router/go_router.dart';
-import 'package:vaarta/router/app_router.dart';
 import 'package:vaarta/widgets/chat_drawer.dart';
+import 'package:vaarta/providers/chat_list_provider.dart'; // Added for refresh
+import 'package:logging/logging.dart'; // Added for logging
 
 /// Displays a chat interface for sending and receiving messages with an AI.
 class ChatScreen extends ConsumerStatefulWidget {
@@ -31,10 +34,11 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
+  final _logger = Logger('ChatScreen'); // Added Logger
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final dbHelper = DatabaseHelper.instance;
-  late LLMClient _llmClient;
+  // late LLMClient _llmClient; // Removed: Provided by llmClientProvider
 
   bool _isGenerating = false;
   String _streamedResponse = "";
@@ -46,26 +50,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   late StreamController<String> _messageStreamController;
   StreamSubscription<String>? _streamSubscription;
 
-  // Preferences
-  String _apiKey = '';
-  String _selectedModel = "cognitivecomputations/dolphin3.0-mistral-24b:free";
-  bool _useHapticFeedback = true;
-  bool _showReasoning = true;
-  String _systemPromptSetting = '';
-  double _temperature = 0.7;
-  int _maxTokens = 1000;
-  double _topP = 0.9;
+  // Preferences are now managed by SettingsNotifier via settingsProvider
+  // String _apiKey = '';
+  // String _selectedModel = "cognitivecomputations/dolphin3.0-mistral-24b:free";
+  // bool _useHapticFeedback = true;
+  // bool _showReasoning = true;
+  // String _systemPromptSetting = '';
+  // double _temperature = 0.7;
+  // int _maxTokens = 1000;
+  // double _topP = 0.9;
 
   final TextEditingController _systemPromptController = TextEditingController();
-  final String defaultSystemPrompt =
-      '''You are Vaarta AI, a helpful assistant. Your responses should be concise, avoiding unnecessary details. Your personality is lovable, warm, and inviting.''';
+  // Default system prompt is now defined in SettingsState
+  // final String defaultSystemPrompt =
+  //     '''You are Vaarta AI, a helpful assistant...''';
 
   @override
   void initState() {
     super.initState();
     _messageStreamController = StreamController<String>.broadcast();
     _loadMessages();
-    _loadSettings();
+    // _loadSettings(); // Removed: Settings are loaded by the provider
   }
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -80,49 +85,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     AppRouter.navigateToNewChat(context);
   }
 
-  /// Loads saved settings from SharedPreferences and initializes the LLM client.
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted || _isDisposed) return; // Check if still mounted
-
-    setState(() {
-      _apiKey = prefs.getString('apiKey') ?? '';
-      _selectedModel = prefs.getString('selectedModel') ?? _selectedModel;
-      _useHapticFeedback = prefs.getBool('hapticFeedback') ?? true;
-      _showReasoning = prefs.getBool('showReasoning') ?? true;
-      _systemPromptSetting = prefs.getString('systemPrompt') ?? '';
-      _temperature = prefs.getDouble('temperature') ?? 0.7;
-      _maxTokens = prefs.getInt('maxTokens') ?? 4096;
-      _topP = prefs.getDouble('topP') ?? 0.9;
-      _systemPromptController.text =
-          _systemPromptSetting.isNotEmpty
-              ? _systemPromptSetting
-              : defaultSystemPrompt;
-    });
-    _initializeLLMClient();
-  }
-
-  /// Configures the LLM client with current settings.
-  void _initializeLLMClient() {
-    final openRouterConfig = OpenRouterConfig(
-      temperature: _temperature,
-      maxTokens: _maxTokens,
-      topP: _topP,
-      presencePenalty: 0.0,
-      frequencyPenalty: 0.0,
-      reasoning: _showReasoning ? {"exclude": false, "max_tokens": 400} : null,
-    );
-    _llmClient = LLMClient(
-      config: LLMConfig(
-        apiKey: _apiKey,
-        model: _selectedModel,
-        provider: LLMProvider.openRouter,
-        openRouterConfig: openRouterConfig,
-        temperature: _temperature,
-        maxTokens: _maxTokens,
-      ),
-    );
-  }
+  // Removed _loadSettings and _initializeLLMClient
+  // Settings are loaded via settingsProvider
+  // LLMClient is created via llmClientProvider based on settingsProvider state
 
   /// Loads chat messages from the database.
   Future<void> _loadMessages() async {
@@ -177,6 +142,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _sendMessage(String message) async {
     if (message.trim().isEmpty) return;
 
+    final settings = ref.read(settingsProvider); // Read current settings
+    if (settings.apiKey.isEmpty) {
+      _logger.warning("API Key missing. Cannot send message.");
+      // Optionally show a SnackBar or Dialog to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'API Key is missing. Please configure it in Settings.',
+            style: context.typography.body2.copyWith(
+              color: context.colors.onError,
+            ),
+          ),
+          backgroundColor: context.colors.error,
+        ),
+      );
+      return;
+    }
+
     final userMessage = ChatMessage(
       chatId: widget.chatId,
       content: message,
@@ -204,16 +187,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _snapToBottom();
 
     try {
-      final messages = [
+      // Get LLMClient instance from the provider
+      // Use read here as we need the client instance for this specific action
+      final llmClient = ref.read(llmClientProvider);
+
+      final llmMessages = [
         LLMMessage(
           role: 'system',
-          content:
-              _systemPromptSetting.isNotEmpty
-                  ? _systemPromptSetting
-                  : defaultSystemPrompt,
+          content: settings.effectiveSystemPrompt, // Use settings provider
         ),
         ...ref
-            .watch(messagesNotifierProvider(widget.chatId))
+            .watch(
+              messagesNotifierProvider(widget.chatId),
+            ) // Keep watching message list
             .map(
               (msg) => LLMMessage(
                 role: msg.isUser ? 'user' : 'assistant',
@@ -222,20 +208,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
       ];
 
-      _streamSubscription = _llmClient
-          .streamCompletion(messages)
+      _streamSubscription = llmClient // Use provider's client instance
+          .streamCompletion(llmMessages)
           .listen(
             (chunk) {
               if (!mounted || _isDisposed) return;
               setState(() {
                 _streamedResponse += chunk;
-                if (_useHapticFeedback) HapticFeedback.lightImpact();
+                if (settings.useHapticFeedback)
+                  HapticFeedback.lightImpact(); // Use settings provider
                 // Add the chunk to the stream controller
                 _messageStreamController.add(chunk);
               });
               _smoothScrollToBottom();
             },
-            onDone: () {
+            onDone: () async {
+              // Make onDone async
               if (!mounted || _isDisposed) return;
 
               final aiMessage = ChatMessage(
@@ -244,16 +232,62 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 isUser: false,
                 timestamp: DateTime.now(),
               );
+
+              // Add AI message to state first
               ref
                   .read(messagesNotifierProvider(widget.chatId).notifier)
                   .addMessage(aiMessage);
 
-              setState(() {
-                _isGenerating = false;
-                _streamSubscription = null;
-              });
-              dbHelper.insertMessage(aiMessage);
-              _snapToBottom();
+              // Update generating state
+              // Do this before DB operations which might take time
+              if (mounted && !_isDisposed) {
+                setState(() {
+                  _isGenerating = false;
+                  _streamSubscription = null;
+                });
+              }
+
+              // Save AI message to DB
+              await dbHelper.insertMessage(aiMessage); // await DB insert
+
+              // --- Auto-title generation logic ---
+              try {
+                final chatMetadata = await dbHelper.getChatMetadata(
+                  widget.chatId,
+                );
+                if (chatMetadata != null &&
+                    chatMetadata[DatabaseHelper.chatColumnChatName] ==
+                        'New Chat') {
+                  // Check if it's the *first* AI response by seeing if there are exactly 2 messages (user + this AI)
+                  final currentMessages = ref.read(
+                    messagesNotifierProvider(widget.chatId),
+                  );
+                  if (currentMessages.length == 2) {
+                    _logger.info(
+                      "Chat '${widget.chatId}' is 'New Chat' and has 2 messages. Triggering title generation.",
+                    );
+                    _generateAndSetInitialChatTitle(); // Call placeholder
+                  } else {
+                    _logger.info(
+                      "Chat '${widget.chatId}' is 'New Chat' but has ${currentMessages.length} messages. Not generating title.",
+                    );
+                  }
+                } else {
+                  _logger.info(
+                    "Chat '${widget.chatId}' name is not 'New Chat' or metadata is null. Not generating title.",
+                  );
+                }
+              } catch (e) {
+                _logger.severe(
+                  'Error checking/triggering chat title generation: $e',
+                );
+                // Optionally show an error to the user
+              }
+              // --- End Auto-title logic ---
+
+              if (mounted && !_isDisposed) {
+                _snapToBottom(); // Snap to bottom after everything
+              }
             },
             onError: (error) {
               if (!mounted || _isDisposed) return;
@@ -297,6 +331,137 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  /// Generates and sets the initial chat title based on the first two messages.
+  Future<void> _generateAndSetInitialChatTitle() async {
+    _logger.info(
+      "Attempting to generate initial title for chat ${widget.chatId}",
+    );
+
+    try {
+      // 1. Retrieve first user and AI message
+      final messages = ref.read(messagesNotifierProvider(widget.chatId));
+      if (messages.length < 2) {
+        _logger.warning("Cannot generate title: Less than 2 messages found.");
+        return;
+      }
+      final userMessage = messages[0]; // Assuming first is user
+      final aiMessage = messages[1]; // Assuming second is AI
+
+      if (!userMessage.isUser || aiMessage.isUser) {
+        _logger.warning(
+          "Cannot generate title: First two messages are not User then AI.",
+        );
+        return;
+      }
+
+      // 2. Create title generation prompt
+      final titlePrompt = """
+Generate a very short, concise title (max 5 words, ideally 2-3) for the following conversation snippet. Only output the title itself, nothing else.
+
+User: ${userMessage.content}
+Assistant: ${aiMessage.content}
+
+Title: """;
+
+      final titleMessages = [LLMMessage(role: 'user', content: titlePrompt)];
+
+      // 3. Get LLM client (use a config with low maxTokens)
+      final settings = ref.read(settingsProvider);
+      final titleLlmConfig = LLMConfig(
+        apiKey: settings.apiKey,
+        model:
+            settings
+                .selectedModel, // Use the same model for consistency for now
+        provider: LLMProvider.openRouter,
+        maxTokens: 20, // Limit tokens for title generation
+        temperature: 0.5, // Lower temperature for more predictable title
+        openRouterConfig: OpenRouterConfig(
+          maxTokens: 20,
+          temperature: 0.5,
+          // We don't need reasoning for title gen
+        ),
+        // stream: true, // Incorrect placement: stream is part of OpenRouterConfig (defaults to true)
+      );
+      final titleLlmClient = LLMClient(config: titleLlmConfig);
+
+      // 4. Call LLM and handle stream for title
+      _logger.info("Calling LLM for title generation...");
+      final titleBuffer = StringBuffer();
+      StreamSubscription? titleStreamSub;
+      final completer = Completer<String>();
+
+      titleStreamSub = titleLlmClient
+          .streamCompletion(titleMessages)
+          .listen(
+            (chunk) {
+              titleBuffer.write(chunk);
+              // Optional: Check if title seems complete (e.g., newline)
+              final currentTitle = titleBuffer.toString().trim();
+              if (currentTitle.contains('\n') || currentTitle.length > 30) {
+                // Stop early if newline or long
+                if (!completer.isCompleted) {
+                  final finalTitle =
+                      currentTitle.split('\n').first.trim(); // Take first line
+                  completer.complete(finalTitle);
+                  titleStreamSub?.cancel();
+                }
+              }
+            },
+            onDone: () {
+              if (!completer.isCompleted) {
+                completer.complete(titleBuffer.toString().trim());
+              }
+              _logger.info("LLM stream for title finished.");
+            },
+            onError: (error) {
+              if (!completer.isCompleted) {
+                completer.completeError(error);
+              }
+              _logger.severe("Error during title generation stream: $error");
+            },
+            cancelOnError: true,
+          );
+
+      // Wait for title generation with a timeout
+      String generatedTitle = await completer.future.timeout(
+        const Duration(seconds: 15), // 15 second timeout for title gen
+        onTimeout: () {
+          _logger.warning("Title generation timed out.");
+          titleStreamSub?.cancel();
+          return titleBuffer.toString().trim().isNotEmpty
+              ? titleBuffer
+                  .toString()
+                  .trim()
+                  .split('\n')
+                  .first
+                  .trim() // Use partial if available
+              : "Chat"; // Fallback title
+        },
+      );
+
+      // Clean up title (remove quotes, trim again)
+      generatedTitle = generatedTitle.replaceAll(RegExp(r'^"|"$'), '').trim();
+      if (generatedTitle.isEmpty) {
+        generatedTitle = "Chat"; // Ensure title is not empty
+      }
+
+      _logger.info("Generated title: '$generatedTitle'");
+
+      // 5. Update database
+      await dbHelper.updateChatName(widget.chatId, generatedTitle);
+      _logger.info("Updated chat name in DB for ${widget.chatId}");
+
+      // 6. Refresh ChatDrawer (invalidate provider)
+      ref.invalidate(chatListProvider);
+      _logger.info("Invalidated chatListProvider to refresh drawer.");
+    } catch (e, stackTrace) {
+      _logger.severe(
+        'Error generating/setting initial chat title: $e\n$stackTrace',
+      );
+      // Optionally show error to user, but maybe fail silently for title gen
+    }
+  }
+
   /// Stops the stream generation and saves the partial response.
   void _stopStream() {
     _streamSubscription?.cancel();
@@ -334,14 +499,85 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final messages = ref.watch(messagesNotifierProvider(widget.chatId));
+    final settingsState = ref.watch(settingsProvider); // Watch settings state
 
+    // Handle settings loading/error states
+    if (settingsState.isLoading) {
+      return Scaffold(
+        appBar: _buildAppBar(context, settingsState), // Pass settings state
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (settingsState.errorMessage != null) {
+      return Scaffold(
+        appBar: _buildAppBar(context, settingsState), // Pass settings state
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Error loading settings: ${settingsState.errorMessage}\nPlease check your connection or restart the app.',
+              style: context.typography.body1.copyWith(
+                color: context.colors.error,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Handle missing API key after loading
+    if (settingsState.apiKey.isEmpty) {
+      return Scaffold(
+        key: _scaffoldKey,
+        drawer: ChatDrawer(
+          currentChatId: widget.chatId,
+          onNewChat: _startNewChat,
+        ),
+        appBar: _buildAppBar(context, settingsState),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'API Key Required',
+                  style: context.typography.h5,
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: context.spacing.medium),
+                Text(
+                  'Please set your OpenRouter API Key in the settings to start chatting.',
+                  style: context.typography.body1,
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: context.spacing.large),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.settings),
+                  label: Text('Go to Settings'),
+                  onPressed: _openSettings,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.colors.primary,
+                    foregroundColor: context.colors.onPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Normal build when settings are loaded and API key is present
     return Scaffold(
       key: _scaffoldKey,
       drawer: ChatDrawer(
         currentChatId: widget.chatId,
         onNewChat: _startNewChat,
       ),
-      appBar: _buildAppBar(context),
+      appBar: _buildAppBar(context, settingsState), // Pass settings state
       body: Center(
         child: Container(
           width: 752.0,
@@ -353,10 +589,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   padding: EdgeInsets.symmetric(
                     horizontal: context.spacing.medium,
                   ),
-                  child: _buildMessageListView(context, messages),
+                  child: _buildMessageListView(
+                    context,
+                    messages,
+                    settingsState,
+                  ), // Pass settings state
                 ),
               ),
-              _buildInputArea(context),
+              _buildInputArea(context, settingsState), // Pass settings state
             ],
           ),
         ),
@@ -366,7 +606,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   /// Builds the app bar with navigation and editing options.
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    SettingsState settings,
+  ) {
+    // Added settings param
     return PreferredSize(
       preferredSize: const Size.fromHeight(kToolbarHeight),
       child: AppBar(
@@ -399,6 +643,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   /// Opens a dialog to edit the system prompt.
   void _editSystemPrompt() {
+    // Initialize controller with current setting from provider
+    _systemPromptController.text = ref.read(settingsProvider).systemPrompt;
+
     showDialog(
       context: context,
       builder:
@@ -429,11 +676,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
                 onPressed: () async {
                   final newPrompt = _systemPromptController.text;
-                  if (mounted && !_isDisposed) {
-                    setState(() => _systemPromptSetting = newPrompt);
-                  }
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setString('systemPrompt', newPrompt);
+                  // Update setting via provider
+                  ref
+                      .read(settingsProvider.notifier)
+                      .updateSystemPrompt(newPrompt);
+                  // if (mounted && !_isDisposed) {
+                  //   setState(() => _systemPromptSetting = newPrompt); // Removed setState
+                  // }
+                  // final prefs = await SharedPreferences.getInstance(); // Removed direct pref usage
+                  // await prefs.setString('systemPrompt', newPrompt);
                   if (context.mounted) {
                     Navigator.of(context).pop();
                   }
@@ -448,6 +699,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget _buildMessageListView(
     BuildContext context,
     List<ChatMessage> messages,
+    SettingsState settings, // Added settings param
   ) {
     return ListView.builder(
       controller: _scrollController,
@@ -467,13 +719,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           );
         }
-        return _buildChatMessage(context, messages[index]);
+        return _buildChatMessage(
+          context,
+          messages[index],
+          settings,
+        ); // Pass settings
       },
     );
   }
 
   /// Builds a single chat message based on its sender.
-  Widget _buildChatMessage(BuildContext context, ChatMessage message) {
+  Widget _buildChatMessage(
+    BuildContext context,
+    ChatMessage message,
+    SettingsState settings,
+  ) {
+    // Added settings param
     final isUserMessage = message.isUser;
     return Padding(
       padding: EdgeInsets.only(top: context.spacing.medium),
@@ -484,7 +745,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child:
               isUserMessage
                   ? _buildUserMessage(context, message)
-                  : _buildAssistantMessage(context, message),
+                  : _buildAssistantMessage(
+                    context,
+                    message,
+                    settings,
+                  ), // Pass settings
         ),
       ),
     );
@@ -560,7 +825,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   /// Builds an assistant message with editing capability.
-  Widget _buildAssistantMessage(BuildContext context, ChatMessage message) {
+  Widget _buildAssistantMessage(
+    BuildContext context,
+    ChatMessage message,
+    SettingsState settings,
+  ) {
+    // Added settings param
     final messageController = TextEditingController(text: message.content);
 
     return Container(
@@ -631,7 +901,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         color: context.colors.primary,
                         tooltip: 'Copy',
                         onPressed:
-                            () => _copyMessageToClipboard(message.content),
+                            () => _copyMessageToClipboard(
+                              message.content,
+                              settings,
+                            ), // Pass settings
                       ),
                     ],
                   ),
@@ -641,9 +914,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   /// Copies the message content to clipboard
-  void _copyMessageToClipboard(String content) {
+  void _copyMessageToClipboard(String content, SettingsState settings) {
+    // Added settings param
     Clipboard.setData(ClipboardData(text: content));
-    if (_useHapticFeedback) {
+    if (settings.useHapticFeedback) {
+      // Use settings provider
       HapticFeedback.lightImpact();
     }
     ScaffoldMessenger.of(context).showSnackBar(
@@ -682,7 +957,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   /// Builds the input area for sending messages.
-  Widget _buildInputArea(BuildContext context) {
+  Widget _buildInputArea(BuildContext context, SettingsState settings) {
+    // Added settings param
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -767,10 +1043,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       onPressed:
                           _isGenerating
                               ? _stopStream
+                              // Disable send if API key is missing (already handled by build, but for safety)
+                              : settings.apiKey.isEmpty
+                              ? null
                               : () => _sendMessage(_textController.text),
                       icon: Icon(
                         _isGenerating ? Icons.stop : Icons.send,
-                        color: context.colors.primary,
+                        color:
+                            settings.apiKey.isEmpty
+                                ? context.colors.onSurface.withValues(
+                                  alpha: 0.4,
+                                ) // Dim if disabled
+                                : context.colors.primary,
                       ),
                     ),
                   ],

@@ -112,6 +112,21 @@ class DatabaseHelper {
     );
   }
 
+  /// Retrieves metadata for a specific chat.
+  Future<Map<String, dynamic>?> getChatMetadata(String chatId) async {
+    Database? db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db!.query(
+      chatTable,
+      where: '$chatColumnChatId = ?',
+      whereArgs: [chatId],
+      limit: 1,
+    );
+    if (maps.isNotEmpty) {
+      return maps.first;
+    }
+    return null; // Return null if chat not found
+  }
+
   Future<void> updateChatName(String chatId, String newName) async {
     Database? db = await instance.database;
     await db!.update(
@@ -124,12 +139,15 @@ class DatabaseHelper {
 
   Future<void> deleteChat(String chatId) async {
     Database? db = await instance.database;
+    // Delete chat metadata
     await db!.delete(
       chatTable,
       where: '$chatColumnChatId = ?',
       whereArgs: [chatId],
     );
-    await db.delete(
+
+    // Delete associated messages
+    await db!.delete(
       messageTable,
       where: '$columnChatId = ?',
       whereArgs: [chatId],
