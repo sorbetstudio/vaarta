@@ -11,7 +11,7 @@ import 'package:logging/logging.dart'; // Import logging package
 
 void main() async {
   // --- Logging Setup ---
-  Logger.root.level = Level.ALL; // Log all levels for debugging
+  Logger.root.level = Level.OFF; // Log all levels for debugging
   Logger.root.onRecord.listen((record) {
     print(
       '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}',

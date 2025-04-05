@@ -283,11 +283,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
-  // Removed _buildThemeSelectorTile
-  // Removed _buildModelSelector
-  // Removed _buildTemperatureSlider
-  // Removed _buildMaxTokensSlider
-  // Removed _buildApiKeyInput
+  // Build methods for extracted components were removed.
 
   Widget _buildReasoningModeTile(BuildContext context, SettingsState settings) {
     // Add settings parameter

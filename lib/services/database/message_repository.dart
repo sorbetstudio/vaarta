@@ -55,6 +55,17 @@ class MessageRepository {
     await db!.delete(DatabaseHelper.messageTable);
   }
 
+  /// Deletes all messages for a specific chat with a timestamp greater than or equal to the provided timestamp.
+  Future<void> deleteMessagesFrom(String chatId, DateTime timestamp) async {
+    Database? db = await _dbHelper.database;
+    await db!.delete(
+      DatabaseHelper.messageTable,
+      where:
+          '${DatabaseHelper.columnChatId} = ? AND ${DatabaseHelper.columnTimestamp} >= ?',
+      whereArgs: [chatId, timestamp.millisecondsSinceEpoch],
+    );
+  }
+
   Map<String, dynamic> _messageToMap(ChatMessage message) {
     return {
       DatabaseHelper.columnChatId: message.chatId,

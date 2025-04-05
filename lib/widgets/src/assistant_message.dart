@@ -2,124 +2,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:logging/logging.dart'; // Import logger
 import 'package:vaarta/theme/theme_extensions.dart';
+import '../message_components/thinking_bubble.dart';
+import '../message_components/tool_call_bubble.dart';
+import '../message_components/code_block.dart';
+import '../message_components/processing_animation.dart';
+import '../../utils/token_parser.dart';
 
-import 'thinking_bubble.dart';
-import 'tool_call_bubble.dart';
-import 'code_block.dart';
-
-/// Represents different types of tokens that can be parsed
-enum TokenType { thinking, toolCall, codeBlock, plainText }
-
-/// Represents a parsed token from the content
-class ParsedToken {
-  final TokenType type;
-  final String content;
-  final Map<String, String>? metadata;
-
-  const ParsedToken({required this.type, required this.content, this.metadata});
-}
-
-/// Abstract base class for token parsing strategies
-abstract class TokenParser {
-  List<ParsedToken> parse(String content);
-}
-
-/// Improved implementation of token parsing with better code detection
-class DefaultTokenParser implements TokenParser {
-  @override
-  List<ParsedToken> parse(String content) {
-    final List<ParsedToken> parsedTokens = [];
-    String remainingContent = content;
-
-    // Parse thinking tokens
-    final thinkMatches = RegExp(
-      r'<think>([\s\S]*?)<\/think>',
-      multiLine: true,
-    ).allMatches(content);
-    for (final match in thinkMatches) {
-      final thinkingContent = match.group(1);
-      if (thinkingContent != null && thinkingContent.isNotEmpty) {
-        parsedTokens.add(
-          ParsedToken(type: TokenType.thinking, content: thinkingContent),
-        );
-        remainingContent =
-            remainingContent.replaceFirst(match.group(0)!, '').trim();
-      }
-    }
-
-    // Parse tool call tokens
-    final toolMatches = RegExp(
-      r'<tool>([\s\S]*?)<\/tool>',
-      multiLine: true,
-    ).allMatches(remainingContent);
-    for (final match in toolMatches) {
-      final toolContent = match.group(1);
-      if (toolContent != null && toolContent.isNotEmpty) {
-        parsedTokens.add(
-          ParsedToken(type: TokenType.toolCall, content: toolContent),
-        );
-        remainingContent =
-            remainingContent.replaceFirst(match.group(0)!, '').trim();
-      }
-    }
-
-    // Parse code block tokens - Modified to improve detection
-    // First try specific code tags
-    final codeMatches = RegExp(
-      r'<code(?:\s+lang="([^"]*)")?>([\s\S]*?)<\/code>',
-      multiLine: true,
-    ).allMatches(remainingContent);
-    for (final match in codeMatches) {
-      final codeContent = match.group(2);
-      final language = match.group(1);
-      if (codeContent != null && codeContent.isNotEmpty) {
-        parsedTokens.add(
-          ParsedToken(
-            type: TokenType.codeBlock,
-            content: codeContent,
-            metadata: language != null ? {'language': language} : null,
-          ),
-        );
-        remainingContent =
-            remainingContent.replaceFirst(match.group(0)!, '').trim();
-      }
-    }
-
-    // Then check for markdown-style code blocks (```code```)
-    final markdownCodeMatches = RegExp(
-      r'```([a-z]*)\n([\s\S]*?)```',
-      multiLine: true,
-    ).allMatches(remainingContent);
-    for (final match in markdownCodeMatches) {
-      final codeContent = match.group(2);
-      final language = match.group(1);
-      if (codeContent != null && codeContent.isNotEmpty) {
-        parsedTokens.add(
-          ParsedToken(
-            type: TokenType.codeBlock,
-            content: codeContent,
-            metadata:
-                language != null && language.isNotEmpty
-                    ? {'language': language}
-                    : null,
-          ),
-        );
-        remainingContent =
-            remainingContent.replaceFirst(match.group(0)!, '').trim();
-      }
-    }
-
-    // Add remaining content as plain text if not empty
-    if (remainingContent.isNotEmpty) {
-      parsedTokens.add(
-        ParsedToken(type: TokenType.plainText, content: remainingContent),
-      );
-    }
-
-    return parsedTokens;
-  }
-}
+// Added logger instance
+final _logger = Logger('AssistantMessageWidget');
 
 /// Configuration for AssistantMessage rendering
 class AssistantMessageConfig {
@@ -130,7 +22,7 @@ class AssistantMessageConfig {
   const AssistantMessageConfig({
     this.enableLogging = false,
     this.streamTimeout = const Duration(seconds: 30),
-    this.enableMarkdown = true,
+    this.enableMarkdown = true, // Keep markdown enabled by default
   });
 }
 
@@ -169,101 +61,178 @@ class _AssistantMessageState extends State<AssistantMessage> {
     _tokenParser = widget.customTokenParser ?? DefaultTokenParser();
 
     if (widget.content != null) {
-      _processContent(widget.content!);
+      _processContent(widget.content!); // Process static content
     } else if (widget.messageStream != null) {
-      _isStreaming = true;
-      _setupStreamSubscription();
+      _isStreaming = true; // Set streaming flag
+      _setupStreamSubscription(); // Start listening
     }
   }
 
   void _setupStreamSubscription() {
+    _logger.fine("Setting up stream subscription");
     _streamSubscription = widget.messageStream!.listen(
       (chunk) {
         _accumulatedContent += chunk;
-        _processContent(_accumulatedContent);
+        // Re-parse the entire content on each chunk
+        if (mounted) {
+          _logger.finest(
+            "Chunk received, processing content. Len: ${_accumulatedContent.length}",
+          );
+          _processContent(_accumulatedContent);
+        }
       },
       onDone: () {
-        setState(() {
-          _isStreaming = false;
-        });
+        _logger.fine("Stream done received");
+        if (mounted) {
+          setState(() {
+            _isStreaming = false; // Clear streaming flag when done
+          });
+        }
       },
+      onError: (error) {
+        _logger.warning(
+          "Error in AssistantMessage stream: $error",
+        ); // Add logging
+        if (mounted) {
+          setState(() {
+            _isStreaming = false;
+            // Optionally display error state in UI if needed
+            _parsedTokens = [
+              ParsedToken(
+                type: TokenType.plainText,
+                content: "Error: $error",
+                startIndex: 0,
+                endIndex: 0,
+              ),
+            ];
+          });
+        }
+      },
+      cancelOnError: true, // Cancel subscription on error
     );
   }
 
   @override
   void didUpdateWidget(AssistantMessage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _logger.fine("didUpdateWidget called");
 
+    // Handle changes in static content
     if (widget.content != oldWidget.content && widget.content != null) {
-      _processContent(widget.content!);
-    } else if (widget.messageStream != oldWidget.messageStream) {
-      _streamSubscription?.cancel();
-      _accumulatedContent = '';
-      _parsedTokens = [];
+      _logger.fine("Static content changed");
+      _streamSubscription?.cancel(); // Cancel any active stream
+      _isStreaming = false;
+      _accumulatedContent = widget.content!; // Reset accumulated
+      _processContent(_accumulatedContent); // Process new static content
+    }
+    // Handle changes in the stream source
+    else if (widget.messageStream != oldWidget.messageStream) {
+      _logger.fine("Stream source changed");
+      _streamSubscription?.cancel(); // Cancel old subscription
+      _accumulatedContent = ''; // Reset content
+      _parsedTokens = []; // Reset tokens
 
       if (widget.messageStream != null) {
         _isStreaming = true;
-        _setupStreamSubscription();
+        _setupStreamSubscription(); // Set up new subscription
       } else {
-        _isStreaming = false;
+        _isStreaming = false; // No stream provided
       }
+      if (mounted)
+        setState(() {}); // Trigger rebuild for potential processing anim
     }
   }
 
+  /// Processes the content string into tokens and updates the state.
   void _processContent(String content) {
-    setState(() {
-      _parsedTokens = _tokenParser.parse(content);
-    });
+    if (mounted) {
+      _logger.finest("Processing content, length: ${content.length}");
+      setState(() {
+        // Parse content using the selected parser with isFinal set based on streaming state
+        _parsedTokens = _tokenParser.parse(content, isFinal: !_isStreaming);
+        _logger.finest("Parsed into ${_parsedTokens.length} tokens");
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _logger.fine("Disposing AssistantMessage");
+    _streamSubscription?.cancel(); // Ensure subscription is cancelled
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    _logger.finest(
+      "Building AssistantMessage. Streaming: $_isStreaming, Tokens: ${_parsedTokens.length}",
+    );
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // Show processing animation ONLY if no tokens have been parsed yet.
+    if (_parsedTokens.isEmpty && _isStreaming) {
+      // Also check _isStreaming to avoid showing it for initial empty static content
+      _logger.finest("Showing processing animation");
+      return ProcessingAnimation(
+        key: const ValueKey('internal_processing'),
+        color: context.colors.primary,
+      );
+    }
+
+    // If not streaming or if tokens exist, build the list of token widgets.
+    // Using a Column ensures widgets appear vertically.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: _buildTokenWidgets(theme, isDark),
     );
   }
 
+  /// Builds a list of Widgets based on the parsed tokens.
   List<Widget> _buildTokenWidgets(ThemeData theme, bool isDark) {
     final List<Widget> widgets = [];
+    final bool isCurrentlyStreaming = _isStreaming; // Capture current state
 
-    for (final token in _parsedTokens) {
+    _logger.finest(
+      "Building token widgets. Count: ${_parsedTokens.length}, Streaming: $isCurrentlyStreaming",
+    );
+
+    for (int i = 0; i < _parsedTokens.length; i++) {
+      final token = _parsedTokens[i];
+      _logger.finest(
+        "Building widget for token $i: type=${token.type}, content='${token.content.substring(0, (token.content.length > 20 ? 20 : token.content.length))}'",
+      );
+      // Determine if this token is the last one currently being streamed
+      // This logic might be flawed for complex streaming scenarios (e.g., code block streaming)
+      final bool isLastPotentiallyStreamingToken =
+          isCurrentlyStreaming && (i == _parsedTokens.length - 1);
+
       switch (token.type) {
         case TokenType.thinking:
-          widgets.add(ThinkingBubble(content: token.content));
+          widgets.add(
+            ThinkingBubble(key: ValueKey('think_$i'), content: token.content),
+          );
           break;
         case TokenType.toolCall:
-          widgets.add(ToolCallBubble(content: token.content));
+          widgets.add(
+            ToolCallBubble(key: ValueKey('tool_$i'), content: token.content),
+          );
           break;
         case TokenType.codeBlock:
-          // Create CodeBlock with either direct content or a content stream
-          if (_isStreaming) {
-            // For streaming, we need to create a stream controller that can be updated
-            // with each tokenization pass
-            final controller = StreamController<String>();
-            controller.add(token.content);
-            widgets.add(
-              CodeBlock(
-                contentStream: controller.stream,
-                language: token.metadata?['language'],
-              ),
-            );
-            // Schedule closure after the build is complete
-            Future.microtask(() => controller.close());
-          } else {
-            widgets.add(
-              CodeBlock(
-                content: token.content,
-                language: token.metadata?['language'],
-              ),
-            );
-          }
+          // Pass content directly to CodeBlock.
+          widgets.add(
+            CodeBlock(
+              // Use a key derived from token info for stability
+              key: ValueKey('code_${i}_${token.startIndex}'),
+              // Pass static content found so far. CodeBlock itself handles internal state.
+              content: token.content,
+              language: token.metadata?['language'],
+            ),
+          );
           break;
         case TokenType.plainText:
-          if (token.content.isNotEmpty) {
+          if (token.content.trim().isNotEmpty) {
+            // Use MarkdownBody for plain text rendering
             widgets.add(
               _buildMarkdownContent(token.content, theme, isDark, context),
             );
@@ -271,50 +240,37 @@ class _AssistantMessageState extends State<AssistantMessage> {
           break;
       }
     }
-
+    // Note: The processing animation is now handled in the main build method
     return widgets;
   }
 
+  /// Builds the Markdown widget for plain text content.
   Widget _buildMarkdownContent(
     String content,
     ThemeData theme,
     bool isDark,
     BuildContext context,
   ) {
-    return Container(
-      decoration: BoxDecoration(
-        color:
-            isDark
-                ? context.colors.background
-                : context.colors.background.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: EdgeInsets.symmetric(
-        vertical: context.spacing.small,
-        horizontal: context.spacing.tiny,
-      ),
-      child: MarkdownBody(
-        data: content,
-        styleSheet: MarkdownStyleSheet(
-          p: context.typography.serif,
-          code: context.typography.code,
-          // codeblockDecoration: BoxDecoration(
-          //   color: isDark ? Colors.grey.shade900 : Colors.grey.shade200,
-          //   borderRadius: BorderRadius.circular(8),
-          // ),
-          blockquoteDecoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(color: theme.dividerColor, width: 4),
-            ),
+    return MarkdownBody(
+      selectable: true,
+      data: content.isEmpty ? ' ' : content, // Handle potential empty string
+      styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+        p: context.typography.body1.copyWith(color: context.colors.onSurface),
+        code: context.typography.code.copyWith(
+          color: context.colors.onSurface,
+          backgroundColor: context.colors.surfaceVariant.withOpacity(0.5),
+        ),
+        codeblockDecoration: BoxDecoration(
+          color: context.colors.surfaceVariant,
+          borderRadius: BorderRadius.circular(context.radius.small),
+        ),
+        blockquoteDecoration: BoxDecoration(
+          color: context.colors.surfaceVariant.withOpacity(0.3),
+          border: Border(
+            left: BorderSide(color: context.colors.secondary, width: 4),
           ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _streamSubscription?.cancel();
-    super.dispose();
   }
 }

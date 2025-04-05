@@ -11,13 +11,17 @@ import 'package:vaarta/utils/dialog_utils.dart';
 import 'package:vaarta/utils/date_utils.dart';
 import 'package:vaarta/widgets/shared/loading_indicator.dart';
 import 'package:vaarta/widgets/shared/error_message_widget.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
-import 'dart:math' as math;
-import 'package:vaarta/models/messages/chat_message.dart';
-import 'package:vaarta/providers/llm_client_provider.dart';
-import 'package:vaarta/services/llm_client.dart';
+// import 'package:flutter_slidable/flutter_slidable.dart'; // Moved to ChatListItem
+import 'dart:math'
+    as math; // Keep for message sublist logic if needed elsewhere
+// import 'package:vaarta/models/messages/chat_message.dart'; // Moved to ChatTitleService
+import 'package:vaarta/providers/llm_client_provider.dart'; // Keep for now, might be removed if service handles all LLM
+// import 'package:vaarta/services/llm_client.dart'; // Moved to ChatTitleService
 import 'dart:async';
+import 'chat/chat_list_item.dart'; // Import the new list item widget
 
+// import 'package:vaarta/services/chat/chat_title_service.dart'; // TODO: Uncomment when service is created
+// import 'package:vaarta/providers/chat_title_service_provider.dart'; // TODO: Uncomment when provider is created
 class ChatDrawer extends ConsumerStatefulWidget {
   final String currentChatId;
   final VoidCallback onNewChat;
@@ -174,176 +178,65 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
       itemCount: chatList.length, // Use passed chatList
       padding: EdgeInsets.all(context.spacing.small),
       itemBuilder: (context, index) {
-        final chatMetadata = chatList[index]; // Use passed chatList
-        return _buildChatItem(context, chatMetadata);
+        final chatMetadata = chatList[index];
+        final chatId = chatMetadata[DatabaseHelper.chatColumnChatId];
+        final isSelected = _selectedChats.contains(chatId);
+        final isCurrentChat = chatId == widget.currentChatId;
+        final isRenaming = _renamingChatIds.contains(chatId);
+        final spinnerChar =
+            isRenaming
+                ? _spinnerChars[_spinnerIndex % _spinnerChars.length]
+                : null;
+
+        return ChatListItem(
+          key: ValueKey(chatId), // Ensure key is passed
+          chatMetadata: chatMetadata,
+          isSelected: isSelected,
+          isCurrentChat: isCurrentChat,
+          isMultiSelectMode: _isMultiSelectMode,
+          isRenaming: isRenaming,
+          spinnerChar: spinnerChar,
+          onTap: () => _handleItemTap(chatId, isSelected),
+          onLongPress: () => _handleItemLongPress(chatId),
+          onDelete: () => _confirmAndDeleteChat(context, chatId),
+          onManualRename: () {
+            final currentName =
+                chatMetadata[DatabaseHelper.chatColumnChatName] ?? 'Chat';
+            _showManualRenameDialog(context, chatId, currentName);
+          },
+          onAutoRename: () => _performAutoRename(context, chatId),
+        );
       },
     );
   }
 
-  Widget _buildChatItem(
-    BuildContext context,
-    Map<String, dynamic> chatMetadata,
-  ) {
-    final chatId = chatMetadata[DatabaseHelper.chatColumnChatId];
-    final isSelected = _selectedChats.contains(chatId);
-    final isCurrentChat = chatId == widget.currentChatId;
+  // --- Helper methods for ChatListItem callbacks ---
 
-    return Slidable(
-      key: ValueKey(chatId), // Use chatId for a unique key
-      startActionPane: ActionPane(
-        motion: const DrawerMotion(),
-        children: [
-          SlidableAction(
-            onPressed:
-                (context) =>
-                    _confirmAndDeleteChat(context, chatId), // Call method
-            backgroundColor: context.colors.error,
-            foregroundColor: context.colors.onError,
-            icon: Icons.delete,
-            label: 'Delete',
-          ),
-          SlidableAction(
-            onPressed: (context) {
-              // Step 3.2: Call the rename dialog
-              final String chatId =
-                  chatMetadata[DatabaseHelper.chatColumnChatId];
-              final String currentName =
-                  chatMetadata[DatabaseHelper.chatColumnChatName] ?? 'Chat';
-              _showManualRenameDialog(context, chatId, currentName);
-            },
-            backgroundColor:
-                context.colors.secondary, // Or context.colors.tertiary
-            foregroundColor:
-                context.colors.onSecondary, // Or context.colors.onTertiary
-            icon: Icons.edit,
-            label: 'Rename',
-          ),
-          SlidableAction(
-            onPressed: (context) {
-              // Step 3.3: Call auto-rename function
-              final String chatId =
-                  chatMetadata[DatabaseHelper.chatColumnChatId];
-              _performAutoRename(context, chatId); // Pass context and chatId
-            },
-            backgroundColor: context.colors.primary,
-            foregroundColor: context.colors.onPrimary,
-            icon: Icons.autorenew,
-            label: 'Auto',
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: context.spacing.extraSmall),
-        child: ListTile(
-          selected: isCurrentChat,
-          selectedTileColor: context.colors.primary.withOpacity(0.1),
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: context.spacing.medium,
-            vertical: context.spacing.small,
-          ),
-          leading: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  context.colors.primary.withOpacity(0.7),
-                  context.colors.primary,
-                ],
-              ),
-              boxShadow: isCurrentChat ? context.shadows.medium : null,
-            ),
-            padding: EdgeInsets.all(context.spacing.small),
-            child: Icon(Icons.chat, color: context.colors.onPrimary, size: 20),
-          ),
-          title: _buildChatTitle(
-            context,
-            chatMetadata,
-            chatId,
-            isCurrentChat,
-          ), // Updated title
-          subtitle: Text(
-            formatTimestamp(
-              // Calling method within the class now
-              DateTime.fromMillisecondsSinceEpoch(
-                chatMetadata[DatabaseHelper.chatColumnLastMessageTimestamp] ??
-                    0,
-              ),
-            ),
-            style: context.typography.body2.copyWith(
-              color: context.colors.onSurface.withOpacity(0.7),
-            ),
-          ),
-          onTap: () {
-            if (_isMultiSelectMode) {
-              setState(() {
-                if (isSelected) {
-                  _selectedChats.remove(chatId);
-                } else {
-                  _selectedChats.add(chatId);
-                }
-                if (_selectedChats.isEmpty) {
-                  _isMultiSelectMode = false;
-                }
-              });
-            } else {
-              // Navigate to the chat
-              context.go(AppRouter.chatPath(chatId));
-            }
-          },
-          onLongPress: () {
-            setState(() {
-              _isMultiSelectMode = true;
-              _selectedChats.add(chatId);
-            });
-          },
-          trailing:
-              _isMultiSelectMode
-                  ? Icon(
-                    isSelected ? Icons.check_circle : Icons.circle_outlined,
-                    color:
-                        isSelected
-                            ? context.colors.primary
-                            : context.colors.onSurface.withOpacity(0.3),
-                  )
-                  : null,
-        ), // End ListTile
-      ), // End Padding
-    ); // End Slidable
+  void _handleItemTap(String chatId, bool isSelected) {
+    if (_isMultiSelectMode) {
+      setState(() {
+        if (isSelected) {
+          _selectedChats.remove(chatId);
+        } else {
+          _selectedChats.add(chatId);
+        }
+        if (_selectedChats.isEmpty) {
+          _isMultiSelectMode = false;
+        }
+      });
+    } else {
+      // Navigate to the chat
+      context.go(AppRouter.chatPath(chatId));
+      // Optionally close the drawer after navigation
+      // Navigator.pop(context);
+    }
   }
 
-  // Helper to build the chat title, handling the renaming animation state
-  Widget _buildChatTitle(
-    BuildContext context,
-    Map<String, dynamic> chatMetadata,
-    String chatId,
-    bool isCurrentChat,
-  ) {
-    final bool isRenaming = _renamingChatIds.contains(chatId);
-    final defaultTitle =
-        chatMetadata[DatabaseHelper.chatColumnChatName] ?? 'Chat';
-    final textStyle = context.typography.body1.copyWith(
-      fontWeight: isCurrentChat ? FontWeight.bold : FontWeight.normal,
-      color: context.colors.onSurface,
-    );
-
-    if (isRenaming) {
-      final spinnerChar = _spinnerChars[_spinnerIndex % _spinnerChars.length];
-      return Text(
-        '$spinnerChar Generating...',
-        style: textStyle.copyWith(
-          color: context.colors.onSurface.withOpacity(0.7),
-        ), // Dimmed style while generating
-        overflow: TextOverflow.ellipsis, // Prevent overflow
-      );
-    } else {
-      return Text(
-        defaultTitle,
-        style: textStyle,
-        overflow: TextOverflow.ellipsis, // Prevent overflow
-      );
-    }
+  void _handleItemLongPress(String chatId) {
+    setState(() {
+      _isMultiSelectMode = true;
+      _selectedChats.add(chatId);
+    });
   }
 
   Widget _buildDrawerFooter(BuildContext context) {
@@ -500,8 +393,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     // Get the list *before* deletion for navigation logic
     final currentList = await ref.read(chatListProvider.future);
 
-    // Removed redundant log here, keeping the one inside the try block
-    // Logs inside DatabaseHelper will show progress
+    // Logs inside DatabaseHelper will show progress if enabled there
     try {
       // Delete the chat from the database
       // Logs inside DatabaseHelper will show progress
@@ -653,111 +545,41 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
     });
     // --- UI Update End ---
 
-    final dbHelper = DatabaseHelper.instance;
+    // final dbHelper = DatabaseHelper.instance; // No longer needed directly
     // Obtain ProviderContainer *before* any async gaps to safely refresh provider later.
-    final container = ProviderScope.containerOf(context, listen: false);
+    // final container = ProviderScope.containerOf(context, listen: false); // Not needed if service handles refresh
 
-    // Get LLM client (can be read directly from ref before async gap)
-    final llmClient = ref.read(llmClientProvider);
+    // TODO: Get ChatTitleService instance when provider exists
+    // final chatTitleService = ref.read(chatTitleServiceProvider);
 
     // Fetch messages outside try-catch initially to handle empty case cleanly
-    final messages = await _messageRepository.getMessages(chatId);
-
-    // Handle empty chat case - Stop UI update and exit.
-    if (messages.isEmpty) {
-      print('Cannot rename empty chat: $chatId'); // Log for debugging
-      // Reset UI state in finally block.
-    } else {
-      // --- Start Async LLM and DB Operations ---
-      try {
-        // Select last 5 messages (only if messages is not empty)
-        final recentMessages = messages.sublist(
-          math.max(0, messages.length - 5),
-        );
-
-        // Format for LLM
-        final messageSnippet = recentMessages
-            .map((msg) {
-              final role = msg.isUser ? 'User' : 'Assistant';
-              final sanitizedContent = msg.content.replaceAll('\n', ' ');
-              return '$role: $sanitizedContent';
-            })
-            .join('\n');
-
-        final prompt = '''
-Based *only* on the following recent messages, suggest a short, concise title (3-5 words ideally, max 7 words) for this chat conversation. Output *only* the title itself, without any introductory phrases like "Title:", quotation marks, or other extra text.
-
-Recent Messages:
-$messageSnippet
-
-Suggested Title:''';
-
-        // --- Call LLM Stream and Collect Result ---
-        final llmMessages = [LLMMessage(role: 'user', content: prompt)];
-        final StringBuffer titleBuffer = StringBuffer();
-        // Note: Consider adding specific LLM params for non-streaming if API supports
-        // For now, collecting stream result.
-        await for (final chunk in llmClient.streamCompletion(llmMessages)) {
-          titleBuffer.write(chunk);
-        }
-        final response = titleBuffer.toString();
-        // --- End LLM Call ---
-
-        // --- Process Response ---
-        String? generatedTitle = response.trim();
-
-        if (generatedTitle.isNotEmpty) {
-          if (generatedTitle.toLowerCase().startsWith('title:')) {
-            generatedTitle = generatedTitle.substring('title:'.length).trim();
-          }
-          if (generatedTitle.startsWith('"') && generatedTitle.endsWith('"')) {
-            generatedTitle =
-                generatedTitle.substring(1, generatedTitle.length - 1).trim();
-          }
-          generatedTitle =
-              generatedTitle.replaceAll(RegExp(r'[.!?,]+$'), '').trim();
-          if (generatedTitle.isEmpty) {
-            generatedTitle = null;
-          }
-        } else {
-          generatedTitle = null;
-        }
-        // --- End Response Processing ---
-
-        // --- Database Update and UI Refresh ---
-        // Perform these actions *without* checking 'mounted'
-        if (generatedTitle != null) {
-          await _chatRepository.updateChatName(chatId, generatedTitle);
-          // Use the stored container to refresh the provider.
-          container.refresh(chatListProvider);
-          print(
-            'Chat $chatId auto-renamed to "$generatedTitle"',
-          ); // Log success
-        } else {
-          print('Could not generate title for chat $chatId.'); // Log failure
-        }
-        // --- End DB Update ---
-      } catch (e, stackTrace) {
-        // Log the error - do not check mounted for logging
-        print('Error during auto-rename for chat $chatId: $e\n$stackTrace');
-        // UI is reset in finally block. No Snackbar needed.
-      }
-      // --- End Async Operations ---
-      // --- UI Update Finish (Finally Block) ---
+    // --- Call ChatTitleService ---
+    // --- Call ChatTitleService (Placeholder) ---
+    try {
+      // TODO: Replace with actual service call when implemented
+      print('TODO: Call ChatTitleService.regenerateTitle for chat $chatId');
+      // await chatTitleService.regenerateTitle(chatId); // Commented out usage
+      // Simulate a delay as the service would take time
+      await Future.delayed(const Duration(seconds: 1));
+      // ref.invalidate(chatListProvider); // Or handle refresh within service
+    } catch (e, stackTrace) {
+      print('Error calling ChatTitleService for chat $chatId: $e\n$stackTrace');
+      // Handle error appropriately, maybe show a snackbar if mounted
+    } finally {
+      // --- UI Update Finish ---
+      // This block runs whether the try/catch succeeded or failed.
       // Ensure the UI state is always reset, but *only* if the widget is still mounted.
-      // This runs whether the try block succeeded or failed.
-      finally {
-        if (mounted) {
-          setState(() {
-            _renamingChatIds.remove(chatId);
-            _stopSpinnerAnimation(); // Stop animation if this was the last one
-          });
-        } else {
-          // If not mounted, manually remove from the set so a future rebuild
-          // doesn't incorrectly show it as renaming.
+      if (mounted) {
+        setState(() {
           _renamingChatIds.remove(chatId);
-        }
+          _stopSpinnerAnimation(); // Stop animation if this was the last one
+        });
+      } else {
+        // If not mounted, manually remove from the set so a future rebuild
+        // doesn't incorrectly show it as renaming.
+        _renamingChatIds.remove(chatId);
       }
-    } // End of else block (handles non-empty messages)
+    }
+    // --- End Placeholder ---
   } // End of _performAutoRename method
 }
