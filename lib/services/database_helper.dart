@@ -199,6 +199,19 @@ class DatabaseHelper {
     });
   }
 
+  /// Deletes a single message based on its chat ID and timestamp.
+  Future<int> deleteMessageByTimestamp(
+    String chatId,
+    DateTime timestamp,
+  ) async {
+    Database? db = await instance.database;
+    return await db!.delete(
+      messageTable,
+      where: '$columnChatId = ? AND $columnTimestamp = ?',
+      whereArgs: [chatId, timestamp.millisecondsSinceEpoch],
+    );
+  }
+
   // Helper methods remain same ( _messageToMap, _messageFromMap )
   Map<String, dynamic> _messageToMap(ChatMessage message) {
     return {

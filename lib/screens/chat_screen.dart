@@ -933,27 +933,169 @@ Title: """;
   }
 
   /// Regenerates a specific AI message by re-sending the last user message.
-  void _regenerateMessage(ChatMessage originalMessage) {
+  Future<void> _regenerateMessage(ChatMessage originalMessage) async {
+    // Make async
+    if (_isGenerating)
+      return; // Don't allow regeneration while already generating
+
+    final settings = ref.read(settingsProvider); // Read current settings
+    if (settings.apiKey.isEmpty) {
+      _logger.warning("API Key missing. Cannot regenerate message.");
+      // Optionally show a SnackBar or Dialog to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'API Key is missing. Please configure it in Settings.',
+            style: context.typography.body1.copyWith(
+              color: context.colors.onError,
+            ),
+          ),
+          backgroundColor: context.colors.error,
+        ),
+      );
+      return;
+    }
+
     // Find the last user message before this AI message
-    final lastUserMessageIndex = ref
-        .watch(messagesNotifierProvider(widget.chatId))
-        .lastIndexWhere((msg) => msg.isUser);
+    // We need the list *before* removing the original message to find the context
+    // final messagesBeforeRemoval = ref.read(messagesNotifierProvider(widget.chatId));
+    // final originalMessageIndex = messagesBeforeRemoval.indexWhere((m) => m.timestamp == originalMessage.timestamp);
 
-    // If there's no previous user message, do nothing
-    if (lastUserMessageIndex == -1) return;
+    // If the original message isn't found (shouldn't happen), abort.
+    // if (originalMessageIndex == -1) {
+    //   _logger.warning("Could not find original message to regenerate.");
+    //   return;
+    // }
 
-    final lastUserMessage =
-        ref.watch(
-          messagesNotifierProvider(widget.chatId),
-        )[lastUserMessageIndex];
+    // It's simpler: remove the original AI message first, then use the remaining list.
 
     // Remove the last AI message (the one being regenerated)
+    // This needs to happen *before* constructing the llmMessages list
     ref
         .read(messagesNotifierProvider(widget.chatId).notifier)
         .removeMessage(originalMessage);
+    await dbHelper.deleteMessageByTimestamp(
+      originalMessage.chatId,
+      originalMessage.timestamp,
+    ); // Also delete from DB
 
-    // Send the last user message again to regenerate the response
-    _sendMessage(lastUserMessage.content);
+    if (!mounted || _isDisposed) return;
+
+    // Get the message list *after* removal
+    final currentMessages = ref.read(messagesNotifierProvider(widget.chatId));
+
+    // Construct the messages for the LLM call
+    final llmMessages = [
+      LLMMessage(role: 'system', content: settings.effectiveSystemPrompt),
+      ...currentMessages.map(
+        // Use the list *after* removing the old AI msg
+        (msg) => LLMMessage(
+          role: msg.isUser ? 'user' : 'assistant',
+          content: msg.content,
+        ),
+      ),
+    ];
+
+    // Reuse the stream controller
+    await _messageStreamController.close();
+    _messageStreamController = StreamController<String>.broadcast();
+
+    setState(() {
+      _isGenerating = true;
+      _streamedResponse = "";
+    });
+
+    _snapToBottom(); // Scroll down to show loading indicator
+
+    // ----- Start LLM Call Logic (adapted from _sendMessage) -----
+    try {
+      final llmClient = ref.read(llmClientProvider);
+      _streamSubscription = llmClient
+          .streamCompletion(llmMessages)
+          .listen(
+            (chunk) {
+              // (Identical stream handling as in _sendMessage)
+              if (!mounted || _isDisposed) return;
+              setState(() {
+                _streamedResponse += chunk;
+                if (settings.useHapticFeedback) HapticFeedback.lightImpact();
+                _messageStreamController.add(chunk);
+              });
+              _smoothScrollToBottom();
+            },
+            onDone: () async {
+              // (Identical onDone handling as in _sendMessage, BUT no title gen)
+              if (!mounted || _isDisposed) return;
+
+              final newAiMessage = ChatMessage(
+                chatId: widget.chatId,
+                content: _streamedResponse,
+                isUser: false,
+                timestamp: DateTime.now(),
+              );
+
+              ref
+                  .read(messagesNotifierProvider(widget.chatId).notifier)
+                  .addMessage(newAiMessage);
+
+              if (mounted && !_isDisposed) {
+                setState(() {
+                  _isGenerating = false;
+                  _streamSubscription = null;
+                });
+              }
+
+              await dbHelper.insertMessage(newAiMessage);
+
+              // No title generation needed on regenerate
+
+              if (mounted && !_isDisposed) {
+                _snapToBottom();
+              }
+            },
+            onError: (error) {
+              // (Identical error handling as in _sendMessage)
+              if (!mounted || _isDisposed) return;
+              _logger.severe("Error during regeneration stream: $error");
+              final errorMessage = ChatMessage(
+                chatId: widget.chatId,
+                content: 'Error during regeneration: $error',
+                isUser: false,
+                timestamp: DateTime.now(),
+              );
+              ref
+                  .read(messagesNotifierProvider(widget.chatId).notifier)
+                  .addMessage(errorMessage);
+              setState(() {
+                _isGenerating = false;
+                _streamSubscription = null;
+              });
+              dbHelper.insertMessage(errorMessage);
+              _snapToBottom();
+            },
+            cancelOnError: true,
+          );
+    } catch (e, stackTrace) {
+      // (Identical catch block as in _sendMessage)
+      if (!mounted || _isDisposed) return;
+      _logger.severe("Error initiating regeneration: $e\n$stackTrace");
+      final errorMessage = ChatMessage(
+        chatId: widget.chatId,
+        content: 'Error initiating regeneration: $e',
+        isUser: false,
+        timestamp: DateTime.now(),
+      );
+      ref
+          .read(messagesNotifierProvider(widget.chatId).notifier)
+          .addMessage(errorMessage);
+      setState(() {
+        _isGenerating = false;
+        _streamSubscription = null;
+      });
+      dbHelper.insertMessage(errorMessage);
+      _snapToBottom();
+    }
+    // ----- End LLM Call Logic -----
   }
 
   /// Builds the input area for sending messages.
