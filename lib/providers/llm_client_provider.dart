@@ -2,8 +2,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vaarta/models/settings_state.dart';
 import 'package:vaarta/services/llm_client.dart';
+import 'package:vaarta/services/tool_registry.dart';
 import 'package:vaarta/providers/settings_provider.dart';
 import 'package:logging/logging.dart';
+import 'package:vaarta/services/tools/toast_tool.dart';
+import 'package:vaarta/services/tools/calculator_tool.dart';
+import 'package:vaarta/services/tools/search_tool.dart';
+import 'package:vaarta/services/tools/fetch_tool.dart';
 
 final _logger = Logger('LLMClientProvider');
 
@@ -48,5 +53,13 @@ final llmClientProvider = Provider<LLMClient>((ref) {
     maxTokens: settings.maxTokens,
   );
 
-  return LLMClient(config: llmConfig);
+  // Create tool registry and register tools
+  final toolRegistry =
+      ToolRegistry()
+        ..registerTool(ToastToolImpl())
+        ..registerTool(CalculatorTool())
+        ..registerTool(SearchTool())
+        ..registerTool(FetchTool());
+
+  return LLMClient(config: llmConfig, toolRegistry: toolRegistry);
 });

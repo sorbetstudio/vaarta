@@ -2,7 +2,23 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
+import './tool_registry.dart';
 
+class ToastTool {
+  final String id;
+  final String message;
+
+  ToastTool({required this.id, required this.message});
+
+  factory ToastTool.fromJson(Map<String, dynamic> json) {
+    return ToastTool(id: json['id'], message: json['message']);
+  }
+
+  void execute() {
+    print('[TOAST] $message');
+  }
+}
 
 final _logger = Logger('LLMClient');
 
@@ -105,7 +121,6 @@ class LLMConfig {
   final double? temperature; // Add temperature
   final int? maxTokens; // Add maxTokens
 
-
   LLMConfig({
     required this.apiKey,
     required this.model,
@@ -128,8 +143,16 @@ typedef ChunkCallback = void Function(String chunk);
 
 class LLMClient {
   final LLMConfig config;
+  final ToolRegistry toolRegistry;
 
-  LLMClient({required this.config});
+  LLMClient({required this.config, ToolRegistry? toolRegistry})
+    : toolRegistry = toolRegistry ?? ToolRegistry() {
+    // Register default tools
+    this.toolRegistry.registerTool(ToastToolImpl());
+    this.toolRegistry.registerTool(SearchTool());
+    this.toolRegistry.registerTool(FetchTool());
+    this.toolRegistry.registerTool(CalculatorTool());
+  }
 
   String get _baseUrl {
     switch (config.provider) {
@@ -142,7 +165,7 @@ class LLMClient {
       case LLMProvider.gemini:
         return 'https://generativelanguage.googleapis.com/v1';
       case null:
-      // TODO: Handle this case.
+        // TODO: Handle this case.
         throw UnimplementedError();
     }
   }
@@ -154,14 +177,13 @@ class LLMClient {
     _logger.info('LLM Provider: $provider');
     _logger.info('API Key (first 4 chars): ${apiKey.substring(0, 4)}');
 
-
     switch (config.provider) {
       case LLMProvider.openRouter:
         final headers = {
           ...baseHeaders,
           'Authorization': 'Bearer ${config.apiKey}',
           'HTTP-Referer':
-          config.openRouterConfig?.httpReferer ??
+              config.openRouterConfig?.httpReferer ??
               'https://github.com/yourusername/yourapp',
         };
 
@@ -181,7 +203,7 @@ class LLMClient {
       case LLMProvider.gemini:
         return {...baseHeaders, 'x-goog-api-key': config.apiKey};
       case null:
-      // TODO: Handle this case.
+        // TODO: Handle this case.
         throw UnimplementedError();
     }
   }
@@ -211,12 +233,16 @@ class LLMClient {
           body['max_tokens'] = config.maxTokens!;
         }
 
-
         // Add any extra parameters
         if (config.extraParams != null) {
           for (final entry in config.extraParams!.entries) {
             body[entry.key] = entry.value as Object;
           }
+        }
+
+        // Add tools schemas for OpenRouter
+        if (config.provider == LLMProvider.openRouter) {
+          body['tools'] = toolRegistry.generateToolSchemas();
         }
 
         return body;
@@ -234,7 +260,7 @@ class LLMClient {
         }
 
         return result;
-    // Add other providers' request body formats
+      // Add other providers' request body formats
       default:
         throw UnimplementedError(
           'Provider ${config.provider} not implemented yet',
@@ -251,20 +277,20 @@ class LLMClient {
     _logger.info('Request headers: $headers');
     _logger.info('Request body: $body');
 
-
     try {
       final request =
-      http.Request('POST', Uri.parse(url))
-        ..headers.addAll(headers)
-        ..body = jsonEncode(body);
+          http.Request('POST', Uri.parse(url))
+            ..headers.addAll(headers)
+            ..body = jsonEncode(body);
 
       final response = await http.Client().send(request);
 
       _logger.info('Response status code: ${response.statusCode}');
 
-
       if (response.statusCode != 200) {
-        _logger.warning('Failed response: ${response.statusCode}, body: ${await response.stream.bytesToString()}');
+        _logger.warning(
+          'Failed response: ${response.statusCode}, body: ${await response.stream.bytesToString()}',
+        );
         throw Exception('Failed to get response: ${response.statusCode}');
       }
 
@@ -277,8 +303,8 @@ class LLMClient {
 
             try {
               final jsonData = jsonDecode(data);
-              _logger.finer('jsonData chunk: $jsonData'); // Log jsonData chunk
-              final content = _extractContentFromChunk(jsonData);
+              _logger.finer('jsonData chunk: $jsonData');
+              final content = await _extractContentFromChunk(jsonData);
               if (content.isNotEmpty) {
                 yield content;
               }
@@ -294,13 +320,46 @@ class LLMClient {
     }
   }
 
-  String _extractContentFromChunk(Map<String, dynamic> chunk) {
+  Future<String> _extractContentFromChunk(Map<String, dynamic> chunk) async {
     switch (config.provider) {
       case LLMProvider.openRouter:
+        // Check for tool calls in the response
+        if (chunk['choices'][0]['delta']['tool_calls'] != null) {
+          final toolCalls = chunk['choices'][0]['delta']['tool_calls'];
+          _logger.info('Tool call detected: $toolCalls');
+
+          // Process each tool call
+          for (final toolCall in toolCalls) {
+            final toolName = toolCall['function']['name'];
+            try {
+              final args = jsonDecode(toolCall['function']['arguments']);
+
+              // Check if tool exists in registry
+              final tool = toolRegistry.getTool(toolName);
+              if (tool != null) {
+                // Execute tool asynchronously
+                await toolRegistry.executeTool(name: toolName, params: args);
+              } else {
+                // Fallback for backward compatibility with ToastTool
+                if (toolName == 'show_toast') {
+                  final toast = ToastTool(
+                    id: toolCall['id'],
+                    message: args['message'],
+                  );
+                  toast.execute();
+                } else {
+                  _logger.warning('Unknown tool: $toolName');
+                }
+              }
+            } catch (e, stackTrace) {
+              _logger.severe('Error executing tool $toolName', e, stackTrace);
+            }
+          }
+          return ''; // Return empty string when tools are detected
+        }
         return chunk['choices'][0]['delta']['content'] ?? '';
       case LLMProvider.anthropic:
         return chunk['delta']['text'] ?? '';
-    // Add other providers' chunk parsing logic
       default:
         throw UnimplementedError(
           'Provider ${config.provider} not implemented yet',
