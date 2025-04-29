@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:meta/meta.dart';
 import 'package:logging/logging.dart';
+import 'package:math_expressions/math_expressions.dart';
 
 /// Custom exception for tool execution errors.
 ///
@@ -259,15 +260,12 @@ class CalculatorTool implements Tool {
   Map<String, dynamic> get inputSchema => {
     'type': 'object',
     'properties': {
-      'operation': {
+      'expression': {
         'type': 'string',
-        'enum': ['add', 'subtract', 'multiply', 'divide'],
-        'description': 'The arithmetic operation to perform',
+        'description': 'Mathematical expression to evaluate',
       },
-      'a': {'type': 'number', 'description': 'First operand'},
-      'b': {'type': 'number', 'description': 'Second operand'},
     },
-    'required': ['operation', 'a', 'b'],
+    'required': ['expression'],
   };
 
   @override
@@ -275,36 +273,29 @@ class CalculatorTool implements Tool {
     'type': 'object',
     'properties': {
       'result': {'type': 'number'},
-      'success': {'type': 'boolean'},
     },
   };
 
   @override
   Future<Map<String, dynamic>> execute(Map<String, dynamic> params) async {
     try {
-      final op = params['operation'] as String;
-      final a = params['a'] as num;
-      final b = params['b'] as num;
-      num result;
+      final expressionString = params['expression'] as String;
 
-      switch (op) {
-        case 'add':
-          result = a + b;
-          break;
-        case 'subtract':
-          result = a - b;
-          break;
-        case 'multiply':
-          result = a * b;
-          break;
-        case 'divide':
-          result = a / b;
-          break;
-        default:
-          throw Exception('Invalid operation: $op');
+      // Parse the expression
+      Parser p = Parser();
+      Expression exp = p.parse(expressionString);
+
+      // Evaluate the expression
+      ContextModel cm = ContextModel();
+      // Use evaluate with a type parameter to handle both int and double results
+      dynamic evaluationResult = exp.evaluate(EvaluationType.REAL, cm);
+
+      // Ensure the result is a number (num includes both int and double in Dart)
+      if (evaluationResult is num) {
+        return {'result': evaluationResult};
+      } else {
+        throw Exception('Expression evaluation did not return a number.');
       }
-
-      return {'result': result, 'success': true};
     } catch (e, stackTrace) {
       throw ToolExecutionException(
         toolName: name,

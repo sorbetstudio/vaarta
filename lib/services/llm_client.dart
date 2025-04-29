@@ -200,15 +200,13 @@ typedef ChunkCallback = void Function(String chunk);
 class LLMClient {
   final LLMConfig config;
   final ToolRegistry toolRegistry;
+  final Map<String, bool> toolEnabledState;
 
-  LLMClient({required this.config, ToolRegistry? toolRegistry})
-    : toolRegistry = toolRegistry ?? ToolRegistry() {
-    // Register default tools
-    this.toolRegistry.registerTool(ToastToolImpl());
-    this.toolRegistry.registerTool(SearchTool());
-    this.toolRegistry.registerTool(FetchTool());
-    this.toolRegistry.registerTool(CalculatorTool());
-  }
+  LLMClient({
+    required this.config,
+    required this.toolRegistry,
+    required this.toolEnabledState,
+  });
 
   String get _baseUrl {
     switch (config.provider) {
@@ -394,6 +392,9 @@ class LLMClient {
                     accumulatedToolCallsMap[index] = {};
                   }
                   final accumulatedCall = accumulatedToolCallsMap[index]!;
+                  // Explicitly add the tool call type
+                  accumulatedCall['type'] = 'function';
+
                   // Merge delta into accumulated call
                   if (toolCallDelta['id'] != null) {
                     accumulatedCall['id'] = toolCallDelta['id'];
@@ -441,9 +442,11 @@ class LLMClient {
           final toolArgsString = toolCall['function']['arguments'];
           final toolCallId = toolCall['id'];
 
-          try {
-            final args = jsonDecode(toolArgsString);
-            _logger.info('Executing tool: $toolName with args: $args');
+          final args = jsonDecode(toolArgsString);
+          _logger.info('Attempting to execute tool: $toolName');
+
+          if (toolEnabledState[toolName] == true) {
+            _logger.info('Tool $toolName is enabled. Executing...');
             final toolResult = await toolRegistry.executeTool(
               name: toolName,
               params: args,
@@ -457,16 +460,19 @@ class LLMClient {
                 content: jsonEncode(toolResult), // Tool result as content
               ),
             );
-          } catch (e, stackTrace) {
-            _logger.severe('Error executing tool $toolName', e, stackTrace);
-            // Optionally add an error message as a tool result
+          } else {
+            _logger.warning(
+              'Tool $toolName is disabled in settings. Skipping execution.',
+            );
+            // Add a message indicating the tool was skipped
             toolResultMessages.add(
               LLMMessage(
                 role: 'tool',
                 toolCallId: toolCallId,
                 name: toolName,
                 content: jsonEncode({
-                  'error': 'Error executing tool: ${e.toString()}',
+                  'status': 'skipped',
+                  'reason': 'Tool $toolName is disabled in settings.',
                 }),
               ),
             );
@@ -527,7 +533,7 @@ class LLMClient {
           yield accumulatedContent.toString();
         }
       }
-    } catch (e, stackTrace) {
+    } on Exception catch (e, stackTrace) {
       _logger.severe('Stream completion error: $e', e, stackTrace);
       throw Exception('Stream completion error: $e');
     }

@@ -22,6 +22,7 @@ import 'package:vaarta/theme/theme_extensions.dart';
 import 'package:vaarta/widgets/chat_drawer.dart';
 import 'package:vaarta/providers/chat_list_provider.dart'; // Added for refresh
 import 'package:logging/logging.dart'; // Added for logging
+import 'package:vaarta/providers/tool_registry_provider.dart';
 
 /// Displays a chat interface for sending and receiving messages with an AI.
 class ChatScreen extends ConsumerStatefulWidget {
@@ -382,7 +383,13 @@ Title: """;
         ),
         // stream: true, // Incorrect placement: stream is part of OpenRouterConfig (defaults to true)
       );
-      final titleLlmClient = LLMClient(config: titleLlmConfig);
+      final toolRegistry = ref.read(toolRegistryProvider);
+      final toolEnabledState = ref.read(toolEnabledStateProvider);
+      final titleLlmClient = LLMClient(
+        config: titleLlmConfig,
+        toolRegistry: toolRegistry,
+        toolEnabledState: toolEnabledState,
+      );
 
       // 4. Call LLM and handle stream for title
       _logger.info("Calling LLM for title generation...");

@@ -13,6 +13,7 @@ import '../services/database_helper.dart';
 import 'settings/settings_api_key.dart';
 import 'settings/settings_model_config.dart';
 import 'settings/settings_theme_selector.dart';
+import 'package:vaarta/providers/tool_registry_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -245,6 +246,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
 
             _buildSectionHeader(context, 'About'),
             _buildAboutSection(context),
+
+            _buildDivider(context),
+
+            _buildSectionHeader(context, 'Tools'),
+            _buildToolSettingsSection(context, ref),
           ],
         ),
       ),
@@ -465,6 +471,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       ),
     );
   }
+}
+
+Widget _buildToolSettingsSection(BuildContext context, WidgetRef ref) {
+  final tools = ref.watch(toolListWithEnabledStateProvider);
+  final toolEnabledStateNotifier = ref.read(toolEnabledStateProvider.notifier);
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children:
+        tools.map((tool) {
+          final toolName = tool['name'] as String;
+          final toolDescription = tool['description'] as String;
+          final isEnabled = tool['isEnabled'] as bool;
+
+          return Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: context.spacing.medium,
+              vertical: context.spacing.small,
+            ),
+            child: SwitchListTile(
+              title: Text(toolName, style: context.typography.body1),
+              subtitle: Text(
+                toolDescription,
+                style: context.typography.caption,
+              ),
+              value: isEnabled,
+              onChanged: (value) {
+                toolEnabledStateNotifier.toggleTool(toolName, value);
+              },
+              activeColor: context.colors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(context.radius.medium),
+              ),
+            ),
+          );
+        }).toList(),
+  );
 }
 
 class SectionHeader extends StatelessWidget {

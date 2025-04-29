@@ -5,6 +5,7 @@ import 'package:vaarta/services/llm_client.dart';
 import 'package:vaarta/services/tool_registry.dart';
 import 'package:vaarta/providers/settings_provider.dart';
 import 'package:logging/logging.dart';
+import 'package:vaarta/providers/tool_registry_provider.dart';
 
 final _logger = Logger('LLMClientProvider');
 
@@ -49,13 +50,13 @@ final llmClientProvider = Provider<LLMClient>((ref) {
     maxTokens: settings.maxTokens,
   );
 
-  // Create tool registry and register tools
-  final toolRegistry =
-      ToolRegistry()
-        ..registerTool(ToastToolImpl())
-        ..registerTool(CalculatorTool())
-        ..registerTool(SearchTool())
-        ..registerTool(FetchTool());
+  // Get the tool registry from the provider
+  final toolRegistry = ref.watch(toolRegistryProvider);
+  final toolEnabledState = ref.watch(toolEnabledStateProvider);
 
-  return LLMClient(config: llmConfig, toolRegistry: toolRegistry);
+  return LLMClient(
+    config: llmConfig,
+    toolRegistry: toolRegistry,
+    toolEnabledState: toolEnabledState,
+  );
 });
