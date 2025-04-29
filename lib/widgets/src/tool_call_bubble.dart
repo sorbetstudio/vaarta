@@ -44,10 +44,10 @@ class _ToolCallBubbleState extends State<ToolCallBubble>
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.tertiaryContainer.withOpacity(0.15),
+        color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.tertiary.withOpacity(0.3),
+          color: theme.colorScheme.tertiary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -58,7 +58,9 @@ class _ToolCallBubbleState extends State<ToolCallBubble>
             onTap: () {
               setState(() {
                 _isExpanded = !_isExpanded;
-                _isExpanded ? _expandController.forward() : _expandController.reverse();
+                _isExpanded
+                    ? _expandController.forward()
+                    : _expandController.reverse();
               });
             },
             child: Padding(
@@ -80,7 +82,10 @@ class _ToolCallBubbleState extends State<ToolCallBubble>
                   ),
                   const Spacer(),
                   RotationTransition(
-                    turns: Tween(begin: 0.0, end: 0.5).animate(_expandAnimation),
+                    turns: Tween(
+                      begin: 0.0,
+                      end: 0.5,
+                    ).animate(_expandAnimation),
                     child: Icon(
                       Icons.keyboard_arrow_down,
                       color: theme.colorScheme.tertiary,
@@ -99,21 +104,23 @@ class _ToolCallBubbleState extends State<ToolCallBubble>
                   data: widget.content,
                   styleSheet: MarkdownStyleSheet(
                     p: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.9),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
                       fontSize: 14,
                     ),
                     code: TextStyle(
-                      backgroundColor: theme.brightness == Brightness.dark
-                          ? Colors.grey.shade800
-                          : Colors.grey.shade200,
+                      backgroundColor:
+                          theme.brightness == Brightness.dark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
                       color: theme.colorScheme.onSurface,
                       fontFamily: 'monospace',
                       fontSize: 13,
                     ),
                     codeblockDecoration: BoxDecoration(
-                      color: theme.brightness == Brightness.dark
-                          ? Colors.grey.shade900
-                          : Colors.grey.shade200,
+                      color:
+                          theme.brightness == Brightness.dark
+                              ? Colors.grey.shade900
+                              : Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),

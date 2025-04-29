@@ -286,7 +286,7 @@ class _AssistantMessageState extends State<AssistantMessage> {
         color:
             isDark
                 ? context.colors.background
-                : context.colors.background.withOpacity(0.7),
+                : context.colors.background.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(16),
       ),
       padding: EdgeInsets.symmetric(

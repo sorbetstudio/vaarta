@@ -146,13 +146,13 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
             Icon(
               Icons.chat_bubble_outline,
               size: 64,
-              color: context.colors.onBackground.withOpacity(0.4),
+              color: context.colors.onBackground.withValues(alpha: 0.4),
             ),
             SizedBox(height: context.spacing.medium),
             Text(
               "No chats yet",
               style: context.typography.body1.copyWith(
-                color: context.colors.onBackground.withOpacity(0.6),
+                color: context.colors.onBackground.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -232,7 +232,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
         padding: EdgeInsets.symmetric(vertical: context.spacing.extraSmall),
         child: ListTile(
           selected: isCurrentChat,
-          selectedTileColor: context.colors.primary.withOpacity(0.1),
+          selectedTileColor: context.colors.primary.withValues(alpha: 0.1),
           contentPadding: EdgeInsets.symmetric(
             horizontal: context.spacing.medium,
             vertical: context.spacing.small,
@@ -244,7 +244,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  context.colors.primary.withOpacity(0.7),
+                  context.colors.primary.withValues(alpha: 0.7),
                   context.colors.primary,
                 ],
               ),
@@ -268,7 +268,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
               ),
             ),
             style: context.typography.body2.copyWith(
-              color: context.colors.onSurface.withOpacity(0.7),
+              color: context.colors.onSurface.withValues(alpha: 0.7),
             ),
           ),
           onTap: () {
@@ -301,7 +301,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
                     color:
                         isSelected
                             ? context.colors.primary
-                            : context.colors.onSurface.withOpacity(0.3),
+                            : context.colors.onSurface.withValues(alpha: 0.3),
                   )
                   : null,
         ), // End ListTile
@@ -329,7 +329,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
       return Text(
         '$spinnerChar Generating...',
         style: textStyle.copyWith(
-          color: context.colors.onSurface.withOpacity(0.7),
+          color: context.colors.onSurface.withValues(alpha: 0.7),
         ), // Dimmed style while generating
         overflow: TextOverflow.ellipsis, // Prevent overflow
       );
@@ -637,7 +637,7 @@ class _ChatDrawerState extends ConsumerState<ChatDrawer> {
             decoration: InputDecoration(
               hintText: 'Enter new chat name',
               hintStyle: context.typography.body1.copyWith(
-                color: context.colors.onBackground.withOpacity(0.5),
+                color: context.colors.onBackground.withValues(alpha: 0.5),
               ),
             ),
             style: context.typography.body1,

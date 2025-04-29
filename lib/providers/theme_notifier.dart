@@ -1,6 +1,7 @@
 // lib/providers/theme_notifier.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vaarta/theme/theme_config.dart';
@@ -39,7 +40,7 @@ class ThemeNotifier extends _$ThemeNotifier {
 }
 
 @riverpod
-ThemeMode themeMode(ThemeModeRef ref) {
+ThemeMode themeMode(Ref ref) {
   final themeAsync = ref.watch(themeNotifierProvider);
 
   return themeAsync.when(
