@@ -5,6 +5,41 @@ import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import './tool_registry.dart';
 
+final _apiLogger = Logger('LLMClient.API');
+
+void _logRequest(
+  String method,
+  String url,
+  Map<String, String> headers,
+  Map<String, dynamic> body, {
+  int? statusCode,
+  int? responseTimeMs,
+}) {
+  final sanitizedHeaders = Map.from(headers)..remove('Authorization');
+  final sanitizedBody = Map.from(body)
+    ..removeWhere((k, v) => k.contains('key') || k.contains('secret'));
+
+  final logMessage = StringBuffer('''
+API Request:
+$method $url
+Headers: $sanitizedHeaders
+Body: $sanitizedBody
+''');
+
+  if (statusCode != null) {
+    logMessage.writeln('Response Status: $statusCode');
+  }
+  if (responseTimeMs != null) {
+    logMessage.writeln('Response Time: ${responseTimeMs}ms');
+  }
+
+  if (statusCode == null || statusCode >= 200 && statusCode < 300) {
+    _apiLogger.info(logMessage.toString());
+  } else {
+    _apiLogger.warning(logMessage.toString());
+  }
+}
+
 class ToastTool {
   final String id;
   final String message;
@@ -273,9 +308,8 @@ class LLMClient {
     final headers = _getHeaders();
     final body = _buildRequestBody(messages);
 
-    _logger.info('Request URL: $url');
-    _logger.info('Request headers: $headers');
-    _logger.info('Request body: $body');
+    final stopwatch = Stopwatch()..start();
+    _logRequest('POST', url, headers, body);
 
     try {
       final request =
@@ -284,8 +318,16 @@ class LLMClient {
             ..body = jsonEncode(body);
 
       final response = await http.Client().send(request);
+      stopwatch.stop();
 
-      _logger.info('Response status code: ${response.statusCode}');
+      _logRequest(
+        'POST',
+        url,
+        headers,
+        body,
+        statusCode: response.statusCode,
+        responseTimeMs: stopwatch.elapsedMilliseconds,
+      );
 
       if (response.statusCode != 200) {
         _logger.warning(

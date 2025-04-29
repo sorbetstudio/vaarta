@@ -5,10 +5,6 @@ import 'package:vaarta/services/llm_client.dart';
 import 'package:vaarta/services/tool_registry.dart';
 import 'package:vaarta/providers/settings_provider.dart';
 import 'package:logging/logging.dart';
-import 'package:vaarta/services/tools/toast_tool.dart';
-import 'package:vaarta/services/tools/calculator_tool.dart';
-import 'package:vaarta/services/tools/search_tool.dart';
-import 'package:vaarta/services/tools/fetch_tool.dart';
 
 final _logger = Logger('LLMClientProvider');
 

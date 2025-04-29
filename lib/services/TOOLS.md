@@ -1,72 +1,221 @@
 # Tool System Documentation
 
 ## Overview
-The tool system provides extensible capabilities that can be invoked through the LLM interface. 
+The tool system provides extensible capabilities that can be invoked through the LLM interface. Tools allow for integration with external systems, data processing, and specialized operations.
 
-## Key Components
+## API Documentation
 
-### Tool Interface
-All tools implement the `Tool` interface which requires:
-- `name`: Unique identifier
-- `description`: Human-readable explanation
-- `inputSchema`: JSON Schema for parameters  
-- `outputSchema`: JSON Schema for results
-- `execute()`: Implementation logic
+### Tool Interface Requirements
+All tools must implement the `Tool` interface with these required components:
 
-### Tool Registry
-The `ToolRegistry` manages:
-- Tool registration/lookup
-- Usage analytics
-- Role-based permissions
-- Result caching
-
-## Available Tools
-
-### CalculatorTool
-Performs basic arithmetic operations.
-
-**Example:**
 ```dart
-await registry.executeTool(
-  name: 'calculator',
-  params: {
-    'operation': 'add',
-    'a': 5,
-    'b': 3
+abstract class Tool {
+  String get name;
+  String get description;
+  JsonSchema get inputSchema;
+  JsonSchema get outputSchema;
+  
+  Future<dynamic> execute(Map<String, dynamic> params);
+}
+```
+
+### Schema Specifications
+Tools must define input and output schemas using JSON Schema:
+
+**Example Input Schema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "Search query string"
+    },
+    "maxResults": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 10
+    }
+  },
+  "required": ["query"]
+}
+```
+
+**Example Output Schema:**
+```json
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "title": {"type": "string"},
+      "url": {"type": "string"},
+      "snippet": {"type": "string"}
+    }
   }
+}
+```
+
+### Error Handling
+Tools should throw specific exceptions:
+
+```dart
+// Basic execution error
+throw ToolExecutionException(
+  code: 'INVALID_INPUT',
+  message: 'Query parameter is required'
+);
+
+// Permission error  
+throw ToolPermissionException(
+  requiredRole: 'admin',
+  attemptedAction: 'delete_user'
+);
+
+// Rate limiting
+throw ToolRateLimitException(
+  retryAfter: Duration(seconds: 30)
 );
 ```
 
-### SearchTool
-Searches files and content.
+## Usage Examples
 
-### FetchTool
-Makes HTTP requests.
-
-### ToastTool
-Displays UI notifications.
-
-## Error Handling
-All tools throw `ToolExecutionException` with details about failures.
-
-## Advanced Features
-
-### Permissions
-Tools can be restricted to specific roles:
+### Basic Tool Registration
 ```dart
+// Register a simple tool
+registry.registerTool(
+  CalculatorTool(),
+  description: 'Performs basic arithmetic operations'
+);
+
+// Register with custom metadata
+registry.registerTool(
+  DatabaseQueryTool(),
+  category: 'data',
+  icon: Icons.storage,
+  timeout: Duration(seconds: 10)
+);
+```
+
+### Tool Execution
+```dart
+// Basic execution
+final result = await registry.executeTool(
+  name: 'search',
+  params: {'query': 'flutter docs'}
+);
+
+// With options
+final result = await registry.executeTool(
+  name: 'weather',
+  params: {'location': 'San Francisco'},
+  options: ToolExecutionOptions(
+    cacheTtl: Duration(hours: 1),
+    timeout: Duration(seconds: 5)
+  )
+);
+```
+
+### Permission Management
+```dart
+// Role-based permissions
 registry.registerTool(
   AdminTool(),
-  allowedRoles: ['admin']
+  allowedRoles: ['admin', 'superuser']
 );
+
+// Runtime permission check
+if (!registry.canExecuteTool(user, 'delete_user')) {
+  throw ToolPermissionException(...);
+}
 ```
 
-### Caching
-Results are cached by default. Disable with:
+### Caching Examples
 ```dart
-executeTool(..., useCache: false)
+// Enable caching with TTL
+registry.executeTool(
+  name: 'exchange_rates',
+  params: {'currency': 'USD'},
+  options: ToolExecutionOptions(
+    cacheTtl: Duration(minutes: 30)
+);
+
+// Bypass cache
+registry.executeTool(
+  name: 'live_stats',
+  params: {},
+  options: ToolExecutionOptions(useCache: false)
+);
+
+// Clear cache
+registry.clearToolCache('weather');
 ```
 
-### Analytics
-Track tool usage:
+## Troubleshooting Guide
+
+### Common Errors
+
+| Error Code        | Description                   | Solution                          |
+| ----------------- | ----------------------------- | --------------------------------- |
+| TOOL_NOT_FOUND    | Tool name doesn't exist       | Verify tool is registered         |
+| INVALID_INPUT     | Parameters don't match schema | Check inputSchema requirements    |
+| PERMISSION_DENIED | User lacks required role      | Verify user roles                 |
+| TIMEOUT           | Tool execution took too long  | Increase timeout or optimize tool |
+| RATE_LIMITED      | Too many requests             | Wait or implement backoff         |
+
+### Debugging Tips
+1. **Enable verbose logging**:
 ```dart
-final analytics = registry.getAnalytics();
+ToolRegistry.debugMode = true;
+```
+
+2. **Validate schemas**:
+```dart
+final errors = registry.validateInput('search', params);
+if (errors.isNotEmpty) {
+  print('Validation errors: $errors');
+}
+```
+
+3. **Inspect tool analytics**:
+```dart
+final stats = registry.getToolStats('search');
+print('Avg execution time: ${stats.averageExecutionTime}');
+```
+
+### Performance Optimization
+1. **Cache strategies**:
+   - Use appropriate TTL values
+   - Implement cache invalidation
+   - Consider stale-while-revalidate
+
+2. **Parallel execution**:
+```dart
+final results = await Future.wait([
+  registry.executeTool(name: 'weather', params: {...}),
+  registry.executeTool(name: 'news', params: {...})
+]);
+```
+
+3. **Batch operations**:
+```dart
+registry.executeBatch([
+  ToolRequest(name: 'search', params: {...}),
+  ToolRequest(name: 'translate', params: {...})
+]);
+```
+
+## Available Tools Reference
+
+### Core Tools
+- `calculator`: Basic arithmetic operations
+- `search`: Content search with regex support
+- `fetch`: HTTP requests with caching
+- `toast`: UI notifications
+
+### Advanced Tools
+- `database`: SQL query execution
+- `ai`: ML model inference
+- `filesystem`: File operations
+- `auth`: User authentication
