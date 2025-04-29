@@ -147,7 +147,7 @@ class DatabaseHelper {
     );
 
     // Delete associated messages
-    await db!.delete(
+    await db.delete(
       messageTable,
       where: '$columnChatId = ?',
       whereArgs: [chatId],

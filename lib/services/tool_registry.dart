@@ -1,7 +1,6 @@
 // lib/services/tool_registry.dart
 import 'dart:async';
 import 'dart:convert';
-import 'package:meta/meta.dart';
 import 'package:logging/logging.dart';
 import 'package:math_expressions/math_expressions.dart';
 

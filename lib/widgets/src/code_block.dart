@@ -8,12 +8,11 @@ class CodeBlock extends StatefulWidget {
   final String? content;
   final String? language;
 
-  const CodeBlock({
-    super.key,
-    this.contentStream,
-    this.content,
-    this.language,
-  }) : assert(contentStream != null || content != null, "Either contentStream or content must be provided");
+  const CodeBlock({super.key, this.contentStream, this.content, this.language})
+    : assert(
+        contentStream != null || content != null,
+        "Either contentStream or content must be provided",
+      );
 
   @override
   _CodeBlockState createState() => _CodeBlockState();
@@ -37,27 +36,27 @@ class _CodeBlockState extends State<CodeBlock> {
     if (widget.contentStream != null) {
       _isLoading = true;
       _streamSubscription = widget.contentStream!.listen(
-              (chunk) {
-            if (mounted) {
-              setState(() {
-                _accumulatedContent += chunk;
-              });
-            }
-          },
-          onDone: () {
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-              });
-            }
-          },
-          onError: (error) {
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-              });
-            }
+        (chunk) {
+          if (mounted) {
+            setState(() {
+              _accumulatedContent += chunk;
+            });
           }
+        },
+        onDone: () {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        },
+        onError: (error) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        },
       );
     }
   }
@@ -81,20 +80,20 @@ class _CodeBlockState extends State<CodeBlock> {
       if (widget.contentStream != null) {
         _isLoading = true;
         _streamSubscription = widget.contentStream!.listen(
-                (chunk) {
-              if (mounted) {
-                setState(() {
-                  _accumulatedContent += chunk;
-                });
-              }
-            },
-            onDone: () {
-              if (mounted) {
-                setState(() {
-                  _isLoading = false;
-                });
-              }
+          (chunk) {
+            if (mounted) {
+              setState(() {
+                _accumulatedContent += chunk;
+              });
             }
+          },
+          onDone: () {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+          },
         );
       }
     }
@@ -144,7 +143,8 @@ class _CodeBlockState extends State<CodeBlock> {
                   Text(
                     widget.language!,
                     style: TextStyle(
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                      color:
+                          isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -156,7 +156,8 @@ class _CodeBlockState extends State<CodeBlock> {
                     height: 12,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                      color:
+                          isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                     ),
                   )
                 else
@@ -164,13 +165,16 @@ class _CodeBlockState extends State<CodeBlock> {
                     icon: Icon(
                       Icons.copy_outlined,
                       size: 18,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                      color:
+                          isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                     ),
                     tooltip: 'Copy to clipboard',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onPressed: () {
-                      Clipboard.setData(ClipboardData(text: _accumulatedContent));
+                      Clipboard.setData(
+                        ClipboardData(text: _accumulatedContent),
+                      );
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Code copied to clipboard'),

@@ -1,8 +1,6 @@
 // lib/providers/llm_client_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vaarta/models/settings_state.dart';
 import 'package:vaarta/services/llm_client.dart';
-import 'package:vaarta/services/tool_registry.dart';
 import 'package:vaarta/providers/settings_provider.dart';
 import 'package:logging/logging.dart';
 import 'package:vaarta/providers/tool_registry_provider.dart';

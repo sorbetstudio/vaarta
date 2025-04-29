@@ -2,7 +2,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:logging/logging.dart';
-import 'package:meta/meta.dart';
 import './tool_registry.dart';
 
 final _apiLogger = Logger('LLMClient.API');

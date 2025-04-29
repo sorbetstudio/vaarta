@@ -7,7 +7,6 @@ import 'package:vaarta/services/database_helper.dart';
 import 'package:vaarta/theme/theme_extensions.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'dart:math' as math;
-import 'package:vaarta/models/messages/chat_message.dart';
 import 'package:vaarta/providers/llm_client_provider.dart';
 import 'package:vaarta/services/llm_client.dart';
 import 'dart:async';
@@ -28,7 +27,7 @@ class ChatDrawer extends ConsumerStatefulWidget {
 
 class _ChatDrawerState extends ConsumerState<ChatDrawer> {
   // Old state now managed by provider
-  Set<String> _selectedChats = {};
+  final Set<String> _selectedChats = {};
   bool _isMultiSelectMode = false;
 
   // State for auto-rename UI feedback

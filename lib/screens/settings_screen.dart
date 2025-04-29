@@ -1,13 +1,10 @@
 // lib/screens/settings_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vaarta/providers/settings_provider.dart';
-import 'package:vaarta/models/settings_state.dart'; // Import SettingsState
-import 'package:vaarta/providers/theme_notifier.dart';
-import 'package:vaarta/theme/theme_config.dart';
+import 'package:vaarta/models/settings_state.dart'; // Import SettingsStat
 import 'package:vaarta/theme/theme_extensions.dart';
 import '../services/database_helper.dart';
 import 'settings/settings_api_key.dart';

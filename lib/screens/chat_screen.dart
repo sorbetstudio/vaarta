@@ -7,12 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 // import 'package:shared_preferences/shared_preferences.dart'; // No longer needed here
 import 'package:vaarta/router/app_router.dart';
-import 'dart:ui';
 import '../services/database_helper.dart';
 import '../services/llm_client.dart';
 // import 'settings_screen.dart'; // Settings screen is accessed via router
 import 'package:vaarta/widgets/sk_ui.dart';
-import 'package:vaarta/utils/utils.dart';
 import 'package:vaarta/models/models.dart';
 import 'package:vaarta/providers/messages_notifier.dart';
 import 'package:vaarta/providers/settings_provider.dart'; // Added
@@ -45,7 +43,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String _streamedResponse = "";
   bool _isScrolling = false;
   bool _isEditingMessages = false;
-  bool _isDisposed = false; // Track if widget is disposed
+  final bool _isDisposed = false; // Track if widget is disposed
 
   // Stream controller for RichMessageView
   late StreamController<String> _messageStreamController;
@@ -216,9 +214,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               if (!mounted || _isDisposed) return;
               setState(() {
                 _streamedResponse += chunk;
-                if (settings.useHapticFeedback)
+                if (settings.useHapticFeedback) {
                   HapticFeedback.lightImpact(); // Use settings provider
-                // Add the chunk to the stream controller
+                } // Add the chunk to the stream controller
                 _messageStreamController.add(chunk);
               });
               _smoothScrollToBottom();
@@ -942,8 +940,10 @@ Title: """;
   /// Regenerates a specific AI message by re-sending the last user message.
   Future<void> _regenerateMessage(ChatMessage originalMessage) async {
     // Make async
-    if (_isGenerating)
-      return; // Don't allow regeneration while already generating
+    if (_isGenerating) {
+      return;
+    }
+    // Don't allow regeneration while already generating
 
     final settings = ref.read(settingsProvider); // Read current settings
     if (settings.apiKey.isEmpty) {
