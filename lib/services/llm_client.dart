@@ -62,10 +62,31 @@ enum LLMProvider { openRouter, anthropic, mistral, gemini }
 class LLMMessage {
   final String role;
   final String content;
+  final String? toolCallId; // Add toolCallId
+  final String? name; // Add name
+  final List<Map<String, dynamic>>? toolCalls; // Add toolCalls
 
-  LLMMessage({required this.role, required this.content});
+  LLMMessage({
+    required this.role,
+    required this.content,
+    this.toolCallId, // Add to constructor
+    this.name, // Add to constructor
+    this.toolCalls, // Add to constructor
+  });
 
-  Map<String, dynamic> toJson() => {'role': role, 'content': content};
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> json = {'role': role, 'content': content};
+    if (toolCallId != null) {
+      json['tool_call_id'] = toolCallId;
+    }
+    if (name != null) {
+      json['name'] = name;
+    }
+    if (toolCalls != null) {
+      json['tool_calls'] = toolCalls;
+    }
+    return json;
+  }
 }
 
 class OpenRouterConfig {
@@ -303,19 +324,24 @@ class LLMClient {
     }
   }
 
+  /// Streams the completion response from the LLM.
+  /// Implements the agentic loop for OpenRouter tool calling.
   Stream<String> streamCompletion(List<LLMMessage> messages) async* {
     final url = '$_baseUrl/chat/completions';
     final headers = _getHeaders();
-    final body = _buildRequestBody(messages);
+    final initialRequestBody = _buildRequestBody(messages);
+
+    // Ensure streaming is enabled for the initial request
+    initialRequestBody['stream'] = true;
 
     final stopwatch = Stopwatch()..start();
-    _logRequest('POST', url, headers, body);
+    _logRequest('POST', url, headers, initialRequestBody);
 
     try {
       final request =
           http.Request('POST', Uri.parse(url))
             ..headers.addAll(headers)
-            ..body = jsonEncode(body);
+            ..body = jsonEncode(initialRequestBody);
 
       final response = await http.Client().send(request);
       stopwatch.stop();
@@ -324,17 +350,25 @@ class LLMClient {
         'POST',
         url,
         headers,
-        body,
+        initialRequestBody,
         statusCode: response.statusCode,
         responseTimeMs: stopwatch.elapsedMilliseconds,
       );
 
       if (response.statusCode != 200) {
         _logger.warning(
-          'Failed response: ${response.statusCode}, body: ${await response.stream.bytesToString()}',
+          'Failed initial response: ${response.statusCode}, body: ${await response.stream.bytesToString()}',
         );
-        throw Exception('Failed to get response: ${response.statusCode}');
+        throw Exception(
+          'Failed to get initial response: ${response.statusCode}',
+        );
       }
+
+      // Accumulate streamed chunks to reconstruct the full message
+      Map<int, Map<String, dynamic>> accumulatedToolCallsMap = {};
+      StringBuffer accumulatedContent = StringBuffer();
+      Map<String, dynamic>?
+      firstResponseMessage; // To store the reconstructed message
 
       await for (final chunk in response.stream.transform(utf8.decoder)) {
         for (var line in chunk.split('\n')) {
@@ -346,9 +380,45 @@ class LLMClient {
             try {
               final jsonData = jsonDecode(data);
               _logger.finer('jsonData chunk: $jsonData');
-              final content = await _extractContentFromChunk(jsonData);
-              if (content.isNotEmpty) {
-                yield content;
+
+              // Accumulate content and tool calls from deltas
+              final choice = jsonData['choices'][0];
+              if (choice['delta']['content'] != null) {
+                accumulatedContent.write(choice['delta']['content']);
+              }
+              if (choice['delta']['tool_calls'] != null) {
+                final toolCallsDelta = choice['delta']['tool_calls'] as List;
+                for (final toolCallDelta in toolCallsDelta) {
+                  final index = toolCallDelta['index'] as int;
+                  if (!accumulatedToolCallsMap.containsKey(index)) {
+                    accumulatedToolCallsMap[index] = {};
+                  }
+                  final accumulatedCall = accumulatedToolCallsMap[index]!;
+                  // Merge delta into accumulated call
+                  if (toolCallDelta['id'] != null) {
+                    accumulatedCall['id'] = toolCallDelta['id'];
+                  }
+                  if (toolCallDelta['function'] != null) {
+                    if (!accumulatedCall.containsKey('function')) {
+                      accumulatedCall['function'] = {};
+                    }
+                    if (toolCallDelta['function']['name'] != null) {
+                      accumulatedCall['function']['name'] =
+                          toolCallDelta['function']['name'];
+                    }
+                    if (toolCallDelta['function']['arguments'] != null) {
+                      // Arguments are streamed as chunks, concatenate them
+                      accumulatedCall['function']['arguments'] =
+                          (accumulatedCall['function']['arguments'] ?? '') +
+                          toolCallDelta['function']['arguments'];
+                    }
+                  }
+                }
+              }
+
+              // Store the final message structure from the last chunk if available
+              if (choice['message'] != null) {
+                firstResponseMessage = choice['message'];
               }
             } catch (e) {
               _logger.warning('Error parsing chunk: $e, line: $line');
@@ -356,49 +426,147 @@ class LLMClient {
           }
         }
       }
-    } catch (e) {
-      _logger.severe('Stream completion error: $e');
+
+      // After the first stream is complete, check for tool calls
+      final accumulatedToolCalls = accumulatedToolCallsMap.values.toList();
+
+      if (accumulatedToolCalls.isNotEmpty) {
+        _logger.info(
+          'Tool calls detected in first response: $accumulatedToolCalls',
+        );
+        // Execute tools and prepare for the second API call
+        List<LLMMessage> toolResultMessages = [];
+        for (final toolCall in accumulatedToolCalls) {
+          final toolName = toolCall['function']['name'];
+          final toolArgsString = toolCall['function']['arguments'];
+          final toolCallId = toolCall['id'];
+
+          try {
+            final args = jsonDecode(toolArgsString);
+            _logger.info('Executing tool: $toolName with args: $args');
+            final toolResult = await toolRegistry.executeTool(
+              name: toolName,
+              params: args,
+            );
+            _logger.info('Tool execution result for $toolName: $toolResult');
+            toolResultMessages.add(
+              LLMMessage(
+                role: 'tool',
+                toolCallId: toolCallId,
+                name: toolName,
+                content: jsonEncode(toolResult), // Tool result as content
+              ),
+            );
+          } catch (e, stackTrace) {
+            _logger.severe('Error executing tool $toolName', e, stackTrace);
+            // Optionally add an error message as a tool result
+            toolResultMessages.add(
+              LLMMessage(
+                role: 'tool',
+                toolCallId: toolCallId,
+                name: toolName,
+                content: jsonEncode({
+                  'error': 'Error executing tool: ${e.toString()}',
+                }),
+              ),
+            );
+          }
+        }
+
+        // Construct messages for the second API call
+        List<LLMMessage> messagesForSecondCall = List.from(messages);
+        // Add the first response message (with tool calls and any content)
+        // Use the reconstructed message or build one from accumulated data
+        messagesForSecondCall.add(
+          LLMMessage(
+            role: 'assistant',
+            content: accumulatedContent.toString(),
+            toolCalls: accumulatedToolCalls,
+          ),
+        );
+        // Add tool result messages
+        messagesForSecondCall.addAll(toolResultMessages);
+
+        _logger.info(
+          'Making second API call with messages: $messagesForSecondCall',
+        );
+
+        // Make the second API call
+        final secondRequestBody = _buildRequestBody(messagesForSecondCall);
+        secondRequestBody['stream'] =
+            true; // Ensure streaming for the second call
+
+        final secondRequest =
+            http.Request('POST', Uri.parse(url))
+              ..headers.addAll(headers)
+              ..body = jsonEncode(secondRequestBody);
+
+        final secondResponse = await http.Client().send(secondRequest);
+
+        if (secondResponse.statusCode != 200) {
+          _logger.warning(
+            'Failed second response: ${secondResponse.statusCode}, body: ${await secondResponse.stream.bytesToString()}',
+          );
+          throw Exception(
+            'Failed to get second response: ${secondResponse.statusCode}',
+          );
+        }
+
+        // Stream content from the second response
+        await for (final contentChunk in _streamResponseContent(
+          secondResponse.stream,
+        )) {
+          yield contentChunk;
+        }
+      } else {
+        _logger.info(
+          'No tool calls detected in first response. Yielding accumulated content.',
+        );
+        // No tool calls, just yield the accumulated content from the first response
+        if (accumulatedContent.isNotEmpty) {
+          yield accumulatedContent.toString();
+        }
+      }
+    } catch (e, stackTrace) {
+      _logger.severe('Stream completion error: $e', e, stackTrace);
       throw Exception('Stream completion error: $e');
+    }
+  }
+
+  /// Helper to stream content from an HTTP response stream.
+  Stream<String> _streamResponseContent(http.ByteStream byteStream) async* {
+    await for (final chunk in byteStream.transform(utf8.decoder)) {
+      for (var line in chunk.split('\n')) {
+        if (line.isEmpty) continue;
+        if (line.startsWith('data: ')) {
+          final data = line.substring(6);
+          if (data == '[DONE]') continue;
+
+          try {
+            final jsonData = jsonDecode(data);
+            // Extract content from the chunk - this assumes the second response
+            // will primarily contain content after tool execution.
+            final content = await _extractContentFromChunk(jsonData);
+            if (content.isNotEmpty) {
+              yield content;
+            }
+          } catch (e) {
+            _logger.warning(
+              'Error parsing streamed content chunk: $e, line: $line',
+            );
+          }
+        }
+      }
     }
   }
 
   Future<String> _extractContentFromChunk(Map<String, dynamic> chunk) async {
     switch (config.provider) {
       case LLMProvider.openRouter:
-        // Check for tool calls in the response
-        if (chunk['choices'][0]['delta']['tool_calls'] != null) {
-          final toolCalls = chunk['choices'][0]['delta']['tool_calls'];
-          _logger.info('Tool call detected: $toolCalls');
-
-          // Process each tool call
-          for (final toolCall in toolCalls) {
-            final toolName = toolCall['function']['name'];
-            try {
-              final args = jsonDecode(toolCall['function']['arguments']);
-
-              // Check if tool exists in registry
-              final tool = toolRegistry.getTool(toolName);
-              if (tool != null) {
-                // Execute tool asynchronously
-                await toolRegistry.executeTool(name: toolName, params: args);
-              } else {
-                // Fallback for backward compatibility with ToastTool
-                if (toolName == 'show_toast') {
-                  final toast = ToastTool(
-                    id: toolCall['id'],
-                    message: args['message'],
-                  );
-                  toast.execute();
-                } else {
-                  _logger.warning('Unknown tool: $toolName');
-                }
-              }
-            } catch (e, stackTrace) {
-              _logger.severe('Error executing tool $toolName', e, stackTrace);
-            }
-          }
-          return ''; // Return empty string when tools are detected
-        }
+        // For OpenRouter, this method is now only used to extract content
+        // from the *second* API call's stream, after tool execution.
+        // The tool_calls from the *first* call are handled by accumulating deltas
+        // in streamCompletion.
         return chunk['choices'][0]['delta']['content'] ?? '';
       case LLMProvider.anthropic:
         return chunk['delta']['text'] ?? '';

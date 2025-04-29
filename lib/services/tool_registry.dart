@@ -370,9 +370,12 @@ class ToolRegistry {
   List<Map<String, dynamic>> generateToolSchemas() {
     return _tools.values.map((tool) {
       return {
-        'name': tool.name,
-        'description': tool.description,
-        'parameters': tool.inputSchema,
+        'type': 'function',
+        'function': {
+          'name': tool.name,
+          'description': tool.description,
+          'parameters': tool.inputSchema,
+        },
       };
     }).toList();
   }
